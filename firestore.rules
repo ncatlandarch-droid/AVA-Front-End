@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'ncatlandarch@gmail.com' ||
+        request.auth.token.email.matches('.*ncatlandarch.*')
+      );
+    }
+
+    // Community designs
+    match /designs/{designId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes']);
+      allow delete: if isAdmin();
+    }
+
+    // Admin-managed projects
+    match /projects/{projectId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // PPGIS contributions
+    match /contributions/{contribId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow delete: if isAdmin();
+    }
+  }
+}

@@ -1,0 +1,6 @@
+# Local Netlify CLI cache — must NOT be uploaded
+.netlify/
+node_modules/
+baselines/ava-daughter-draft.png
+*.log
+.git/

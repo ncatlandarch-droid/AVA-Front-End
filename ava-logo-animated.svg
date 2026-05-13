@@ -1,0 +1,41 @@
+<svg viewBox="0 0 420 155" xmlns="http://www.w3.org/2000/svg" width="420" height="155" role="img" aria-label="AVA Logo">
+  <style>
+    @keyframes vColor {
+      0%   { stroke: #7c3aed; filter: drop-shadow(0 0 6px #7c3aed88); }
+      16%  { stroke: #3b82f6; filter: drop-shadow(0 0 6px #3b82f688); }
+      33%  { stroke: #06b6d4; filter: drop-shadow(0 0 6px #06b6d488); }
+      50%  { stroke: #10b981; filter: drop-shadow(0 0 6px #10b98188); }
+      66%  { stroke: #ef4444; filter: drop-shadow(0 0 6px #ef444488); }
+      83%  { stroke: #8b5cf6; filter: drop-shadow(0 0 6px #8b5cf688); }
+      100% { stroke: #7c3aed; filter: drop-shadow(0 0 6px #7c3aed88); }
+    }
+    .v-stroke {
+      fill: none;
+      stroke: #7c3aed;
+      stroke-width: 14;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      animation: vColor 3s ease-in-out infinite;
+    }
+    .a-stroke {
+      fill: none;
+      stroke: #111111;
+      stroke-width: 14;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  </style>
+
+  <!-- Left A: outer left leg -->
+  <line x1="10"  y1="143" x2="110" y2="10"  class="a-stroke"/>
+  <!-- Left A: crossbar -->
+  <line x1="55"  y1="85"  x2="165" y2="85"  class="a-stroke"/>
+
+  <!-- V: animated center (shared inner legs of both A's) -->
+  <polyline points="110,10 210,143 310,10"   class="v-stroke"/>
+
+  <!-- Right A: crossbar -->
+  <line x1="255" y1="85"  x2="365" y2="85"  class="a-stroke"/>
+  <!-- Right A: outer right leg -->
+  <line x1="310" y1="10"  x2="410" y2="143" class="a-stroke"/>
+</svg>
