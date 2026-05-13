@@ -19,6 +19,98 @@ const ADMIN = {
         this._mergeProjects(projects);
       });
     }
+    // Wire up color picker sync
+    this._initColorPicker();
+  },
+
+  /* ═══════ COLOR PICKER SYNC ═══════ */
+
+  _initColorPicker() {
+    const picker = document.getElementById('adminPinColorPicker');
+    const hueSlider = document.getElementById('adminPinHue');
+    const rInput = document.getElementById('adminPinR');
+    const gInput = document.getElementById('adminPinG');
+    const bInput = document.getElementById('adminPinB');
+    if (!picker || !hueSlider || !rInput) return;
+
+    // Helper: update preview swatch from current R/G/B
+    const updatePreview = () => {
+      const r = parseInt(rInput.value) || 0;
+      const g = parseInt(gInput.value) || 0;
+      const b = parseInt(bInput.value) || 0;
+      const hex = '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
+      const preview = document.getElementById('adminPinPreview');
+      if (preview) preview.style.background = `rgb(${r},${g},${b})`;
+      // Sync picker (no re-trigger since we set .value directly)
+      picker.value = hex;
+    };
+
+    // When native color picker changes → update RGB inputs + preview
+    const onPickerChange = () => {
+      const hex = picker.value;
+      rInput.value = parseInt(hex.substring(1,3), 16);
+      gInput.value = parseInt(hex.substring(3,5), 16);
+      bInput.value = parseInt(hex.substring(5,7), 16);
+      // Update hue slider to match
+      const [h] = this._rgbToHsl(+rInput.value, +gInput.value, +bInput.value);
+      hueSlider.value = Math.round(h);
+      updatePreview();
+    };
+    picker.addEventListener('input', onPickerChange);
+
+    // When hue slider changes → generate a saturated color at that hue
+    hueSlider.addEventListener('input', () => {
+      const h = parseInt(hueSlider.value);
+      const [r, g, b] = this._hslToRgb(h, 80, 50);
+      rInput.value = r; gInput.value = g; bInput.value = b;
+      updatePreview();
+    });
+
+    // When any RGB input changes → update picker + preview
+    [rInput, gInput, bInput].forEach(inp => {
+      inp.addEventListener('input', () => {
+        const [h] = this._rgbToHsl(+rInput.value, +gInput.value, +bInput.value);
+        hueSlider.value = Math.round(h);
+        updatePreview();
+      });
+    });
+  },
+
+  // RGB → HSL (returns [h 0-360, s 0-100, l 0-100])
+  _rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+      else if (max === g) h = ((b - r) / d + 2) / 6;
+      else h = ((r - g) / d + 4) / 6;
+    }
+    return [h * 360, s * 100, l * 100];
+  },
+
+  // HSL → RGB (h 0-360, s 0-100, l 0-100 → [r,g,b] 0-255)
+  _hslToRgb(h, s, l) {
+    h /= 360; s /= 100; l /= 100;
+    let r, g, b;
+    if (s === 0) { r = g = b = l; }
+    else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1; if (t > 1) t -= 1;
+        if (t < 1/6) return p + (q - p) * 6 * t;
+        if (t < 1/2) return q;
+        if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1/3);
+      g = hue2rgb(p, q, h);
+      b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
   },
 
   _updateAdminVisibility() {
@@ -167,6 +259,21 @@ const ADMIN = {
     if (pinR) pinR.value = 100;
     if (pinG) pinG.value = 100;
     if (pinB) pinB.value = 100;
+    this._syncColorPicker(100, 100, 100);
+  },
+
+  // Sync picker, hue slider, and preview from RGB values
+  _syncColorPicker(r, g, b) {
+    const hex = '#' + [r,g,b].map(v => Math.max(0,Math.min(255,v)).toString(16).padStart(2,'0')).join('');
+    const picker = document.getElementById('adminPinColorPicker');
+    const hue = document.getElementById('adminPinHue');
+    const preview = document.getElementById('adminPinPreview');
+    if (picker) picker.value = hex;
+    if (preview) preview.style.background = `rgb(${r},${g},${b})`;
+    if (hue) {
+      const [h] = this._rgbToHsl(r, g, b);
+      hue.value = Math.round(h);
+    }
   },
 
   _populateForm(config) {
@@ -181,6 +288,7 @@ const ADMIN = {
     set('adminPinR', config.pinColor?.[0] || 100);
     set('adminPinG', config.pinColor?.[1] || 100);
     set('adminPinB', config.pinColor?.[2] || 100);
+    this._syncColorPicker(config.pinColor?.[0] || 100, config.pinColor?.[1] || 100, config.pinColor?.[2] || 100);
     set('adminProjectArea', config.metrics?.totalAreaAcres);
     set('adminProjectElevation', config.metrics?.elevationDrop);
     set('adminProjectSoil', config.metrics?.soilType);

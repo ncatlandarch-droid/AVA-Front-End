@@ -1,0 +1,88 @@
+{
+  "header.title": "Assistant de Visualisation Adaptatif",
+  "header.subtitle": "PLATEFORME PROPRIÉTAIRE DE JUMEAU NUMÉRIQUE 3D · THINK! DESIGN AND PLANNING, LLC",
+  "header.scoreboard.label": "SITES v2",
+  "header.scoreboard.sites": "sites",
+  "header.scoreboard.avg": "Moy",
+
+  "nav.3dView": "Vue 3D",
+  "nav.projects": "Projets",
+
+  "ava.name": "AVA",
+  "ava.role": "Assistant de Visualisation Adaptatif",
+  "ava.welcome": "Bonjour ! Je suis <strong>AVA</strong>, votre Assistant de Visualisation Adaptatif. Sélectionnez un projet sur la carte ou passez à <strong>Projets</strong> pour commencer à concevoir. Vous pouvez aussi me demander d'afficher des couches ou de naviguer vers n'importe quelle adresse !",
+  "ava.placeholder.map": "Posez une question à AVA sur un site...",
+  "ava.placeholder.design": "Décrivez un élément de conception à ajouter...",
+
+  "canvas.title": "Jumeau Numérique Adaptatif 3D",
+  "canvas.subtitle": "Propulsé par CesiumJS et Google Photorealistic Tiles<br>Sélectionnez un projet pour commencer à concevoir.",
+  "canvas.browseProjects": "Parcourir les Projets",
+
+  "palette.title": "Palette de Conception",
+  "palette.placeholder": "La palette de plantes, matériaux et éléments de conception se remplira ici pendant que vous concevez.",
+
+  "design.baseline": "RÉFÉRENCE",
+  "design.designed": "CONÇU",
+  "design.iteration": "Itération",
+  "design.estCost": "COÛT EST.",
+  "design.undo": "Annuler",
+  "design.download": "Télécharger",
+  "design.seasonal": "Vues Saisonnières",
+  "design.costEstimate": "Estimation des Coûts",
+  "design.reset": "Réinitialiser",
+  "design.saveCommunity": "Sauvegarder dans la Communauté",
+  "design.autoDesign": "AVA Auto-Conception",
+  "design.boostWeakest": "🎯 Améliorer le Plus Faible",
+  "design.voice": "Voix",
+  "design.refAttached": "Image de référence jointe",
+
+  "mission.label": "🎯 Suggestion d'AVA",
+  "mission.apply": "Appliquer la Suggestion",
+
+  "score.preCert": "Pré-Certification",
+
+  "settings.title": "Paramètres",
+  "settings.cesiumToken": "Jeton Cesium Ion",
+  "settings.cesiumPhase": "PHASE 2 — TERRE 3D",
+  "settings.cesiumHelp": "Jeton gratuit depuis <a href=\"https://ion.cesium.com/tokens\" target=\"_blank\">ion.cesium.com/tokens</a> — active la vue 3D en orbite libre. Ou configurez <strong>CESIUM_TOKEN</strong> dans les variables d'environnement Netlify.",
+  "settings.gmapsKey": "Clé API Google Maps",
+  "settings.gmapsHelp": "Active les Google Photorealistic 3D Tiles dans Cesium. Nécessite l'activation de <strong>Map Tiles API</strong> dans Google Cloud Console. Ou configurez <strong>GOOGLE_MAPS_KEY</strong> dans les variables d'environnement Netlify.",
+  "settings.geminiKey": "Clé API Gemini",
+  "settings.geminiHelp": "Obtenez une clé gratuite sur <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\">aistudio.google.com</a>",
+  "settings.firebaseConfig": "Configuration Firebase (JSON)",
+  "settings.geminiModel": "Modèle Gemini",
+  "settings.language": "Langue",
+  "settings.save": "Enregistrer les Paramètres",
+
+  "seasonal.title": "Vues Saisonnières",
+  "seasonal.spring": "🌸 Printemps",
+  "seasonal.summer": "☀️ Été",
+  "seasonal.fall": "🍂 Automne",
+  "seasonal.winter": "❄️ Hiver",
+  "seasonal.genSpring": "Génération du printemps…",
+  "seasonal.genSummer": "Génération de l'été…",
+  "seasonal.genFall": "Génération de l'automne…",
+  "seasonal.genWinter": "Génération de l'hiver…",
+  "seasonal.downloadAll": "Tout Télécharger (Composite 2×2)",
+
+  "community.title": "Conceptions Communautaires",
+  "community.analysis": "Analyse",
+  "community.empty": "Pas encore de conceptions communautaires. Soyez le premier — concevez un espace et cliquez sur \"Publier dans la Galerie\" !",
+  "community.hotTopics": "🔥 Sujets Populaires — Éléments de Conception les Plus Demandés",
+
+  "admin.title": "Gérer les Projets",
+  "admin.existingProjects": "Projets Existants",
+  "admin.newProject": "Nouveau Projet",
+  "admin.importJSON": "Importer JSON",
+  "admin.projectDetails": "Détails du Projet",
+  "admin.exportJSON": "Exporter JSON",
+
+  "cost.title": "Estimation des Coûts du Projet",
+  "cost.disclaimer": "Estimations basées sur les coûts unitaires 2024 du Mid-Atlantique/SE des États-Unis. Les quantités sont dérivées de la superficie du site et des mots-clés de conception. Consultez un architecte paysagiste agréé pour la budgétisation du projet.",
+  "cost.downloadCSV": "Télécharger CSV",
+
+  "footer.legal": "© 2026 Think! Design and Planning, LLC. Tous Droits Réservés. · AVA est un produit propriétaire de Think! Design and Planning, LLC.",
+
+  "toast.saved": "Paramètres enregistrés",
+  "toast.langChanged": "Langue changée en"
+}

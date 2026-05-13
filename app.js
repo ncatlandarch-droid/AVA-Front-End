@@ -49,6 +49,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initBeforeAfterSlider();
   initThreeCanvas();
   updateScoreboard();
+
+  // Initialize i18n (multi-language)
+  if (window.AVA_I18N) {
+    AVA_I18N.init().then(() => {
+      // Sync language selector in settings with saved language
+      const langSel = document.getElementById('settingLanguage');
+      if (langSel) langSel.value = AVA_I18N.getLang();
+    });
+  }
 });
 
 // ========== HEADER SCOREBOARD ==========
@@ -906,7 +915,7 @@ async function handleMapChat() {
     `Baseline score: ${s.baselineScore}/200. Sections: ${(s.sections||[]).map(sec => sec.name).join(', ')}.`
   ).join('\n');
 
-  const systemPrompt = `You are AVA (Adaptive Visualization Assistant), an AI landscape architecture and GIS assistant built by Think! Design and Planning, LLC. You help users explore sites, analyze spatial data (parcels, soils, zoning, contours), and design sustainable landscapes using the SITES v2 rating system. You manage these project sites:\n${siteContext}\n\nMAP COMMANDS — embed these tokens in your response when the user's request involves map actions:\n- Toggle a GIS layer on/off: [CMD:toggle_layer:parcels] [CMD:toggle_layer:soils] [CMD:toggle_layer:zoning] [CMD:toggle_layer:contours] [CMD:toggle_layer:roads]\n- Navigate to an address: [CMD:fly_to:123 Main St, Greensboro NC]\n- Focus a project site: [CMD:focus_site:site-id]\n- Reset to overview: [CMD:reset_view]\n- Zoom in/out: [CMD:zoom_in] [CMD:zoom_out]\nEmbed the command token naturally in your sentence and it will be executed automatically.\n\nIMPORTANT RULES:\n- Be warm, concise, and professional\n- Reference specific site data when relevant\n- Keep responses to 2-3 sentences\n- If asked to show a layer, include the appropriate [CMD:toggle_layer:X] token\n- If asked to go somewhere, include [CMD:fly_to:address] with the full address\n- If asked about SITES v2, explain the sustainability scoring system briefly`;
+  const systemPrompt = `You are AVA (Adaptive Visualization Assistant), an AI landscape architecture and GIS assistant built by Think! Design and Planning, LLC. You help users explore sites, analyze spatial data (parcels, soils, zoning, contours), and design sustainable landscapes using the SITES v2 rating system. You manage these project sites:\n${siteContext}\n\nLANGUAGE: ${(window.AVA_I18N && AVA_I18N.getGeminiLang) ? 'Respond in ' + AVA_I18N.getGeminiLang() + '.' : 'Respond in English.'}\n\nMAP COMMANDS — embed these tokens in your response when the user's request involves map actions:\n- Toggle a GIS layer on/off: [CMD:toggle_layer:parcels] [CMD:toggle_layer:soils] [CMD:toggle_layer:zoning] [CMD:toggle_layer:contours] [CMD:toggle_layer:roads]\n- Navigate to an address: [CMD:fly_to:123 Main St, Greensboro NC]\n- Focus a project site: [CMD:focus_site:site-id]\n- Reset to overview: [CMD:reset_view]\n- Zoom in/out: [CMD:zoom_in] [CMD:zoom_out]\nEmbed the command token naturally in your sentence and it will be executed automatically.\n\nIMPORTANT RULES:\n- Be warm, concise, and professional\n- Reference specific site data when relevant\n- Keep responses to 2-3 sentences\n- If asked to show a layer, include the appropriate [CMD:toggle_layer:X] token\n- If asked to go somewhere, include [CMD:fly_to:address] with the full address\n- If asked about SITES v2, explain the sustainability scoring system briefly`;
 
   try {
     // Use the user's configured model for text chat, with fallback chain

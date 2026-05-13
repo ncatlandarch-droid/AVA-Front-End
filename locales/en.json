@@ -1,0 +1,88 @@
+{
+  "header.title": "Adaptive Visualization Assistant",
+  "header.subtitle": "PROPRIETARY 3D DIGITAL TWIN PLATFORM · THINK! DESIGN AND PLANNING, LLC",
+  "header.scoreboard.label": "SITES v2",
+  "header.scoreboard.sites": "sites",
+  "header.scoreboard.avg": "Avg",
+
+  "nav.3dView": "3D View",
+  "nav.projects": "Projects",
+
+  "ava.name": "AVA",
+  "ava.role": "Adaptive Visualization Assistant",
+  "ava.welcome": "Hi! I'm <strong>AVA</strong>, your Adaptive Visualization Assistant. Select a project on the map or switch to <strong>Projects</strong> to begin designing. You can also ask me to show layers or navigate to any address!",
+  "ava.placeholder.map": "Ask AVA about any site...",
+  "ava.placeholder.design": "Describe a design element to add...",
+
+  "canvas.title": "3D Adaptive Digital Twin",
+  "canvas.subtitle": "Powered by CesiumJS & Google Photorealistic Tiles<br>Select a project to begin designing.",
+  "canvas.browseProjects": "Browse Projects",
+
+  "palette.title": "Design Palette",
+  "palette.placeholder": "Plant palette, materials, and design elements will populate here as you design.",
+
+  "design.baseline": "BASELINE",
+  "design.designed": "DESIGNED",
+  "design.iteration": "Iteration",
+  "design.estCost": "EST. COST",
+  "design.undo": "Undo",
+  "design.download": "Download",
+  "design.seasonal": "Seasonal Views",
+  "design.costEstimate": "Cost Estimate",
+  "design.reset": "Reset",
+  "design.saveCommunity": "Save to Community",
+  "design.autoDesign": "AVA Auto-Design",
+  "design.boostWeakest": "🎯 Boost Weakest",
+  "design.voice": "Voice",
+  "design.refAttached": "Reference image attached",
+
+  "mission.label": "🎯 AVA's Suggestion",
+  "mission.apply": "Apply Suggestion",
+
+  "score.preCert": "Pre-Certification",
+
+  "settings.title": "Settings",
+  "settings.cesiumToken": "Cesium Ion Token",
+  "settings.cesiumPhase": "PHASE 2 — 3D EARTH",
+  "settings.cesiumHelp": "Free token from <a href=\"https://ion.cesium.com/tokens\" target=\"_blank\">ion.cesium.com/tokens</a> — enables true 3D free-orbit campus view. Or set <strong>CESIUM_TOKEN</strong> in Netlify env vars.",
+  "settings.gmapsKey": "Google Maps API Key",
+  "settings.gmapsHelp": "Enables Google Photorealistic 3D Tiles (buildings mesh) inside Cesium. Requires <strong>Map Tiles API</strong> enabled in Google Cloud Console. Or set <strong>GOOGLE_MAPS_KEY</strong> in Netlify env vars.",
+  "settings.geminiKey": "Gemini API Key",
+  "settings.geminiHelp": "Get a free key at <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\">aistudio.google.com</a>",
+  "settings.firebaseConfig": "Firebase Config (JSON)",
+  "settings.geminiModel": "Gemini Model",
+  "settings.language": "Language",
+  "settings.save": "Save Settings",
+
+  "seasonal.title": "Seasonal Views",
+  "seasonal.spring": "🌸 Spring",
+  "seasonal.summer": "☀️ Summer",
+  "seasonal.fall": "🍂 Fall",
+  "seasonal.winter": "❄️ Winter",
+  "seasonal.genSpring": "Generating spring…",
+  "seasonal.genSummer": "Generating summer…",
+  "seasonal.genFall": "Generating fall…",
+  "seasonal.genWinter": "Generating winter…",
+  "seasonal.downloadAll": "Download All (2×2 Composite)",
+
+  "community.title": "Community Designs",
+  "community.analysis": "Analysis",
+  "community.empty": "No community designs yet. Be the first — design a space and click \"Publish to Gallery\"!",
+  "community.hotTopics": "🔥 Hot Topics — Most Requested Design Elements",
+
+  "admin.title": "Manage Projects",
+  "admin.existingProjects": "Existing Projects",
+  "admin.newProject": "New Project",
+  "admin.importJSON": "Import JSON",
+  "admin.projectDetails": "Project Details",
+  "admin.exportJSON": "Export JSON",
+
+  "cost.title": "Project Cost Estimate",
+  "cost.disclaimer": "Estimates based on 2024 Mid-Atlantic/SE US unit costs. Quantities derived from site area & design keywords. Engage a licensed landscape architect for project budgeting.",
+  "cost.downloadCSV": "Download CSV",
+
+  "footer.legal": "© 2026 Think! Design and Planning, LLC. All Rights Reserved. · AVA is a proprietary product of Think! Design and Planning, LLC.",
+
+  "toast.saved": "Settings saved",
+  "toast.langChanged": "Language changed to"
+}

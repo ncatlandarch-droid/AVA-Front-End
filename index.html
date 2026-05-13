@@ -35,8 +35,8 @@
     <div class="top-bar-left">
       <img src="ava logo.png" alt="AVA" class="top-bar-ava-logo">
       <div class="top-bar-brand">
-        <h1>Adaptive Visualization Assistant</h1>
-        <span class="top-bar-subtitle">PROPRIETARY 3D DIGITAL TWIN PLATFORM · THINK! DESIGN AND PLANNING, LLC</span>
+        <h1 data-i18n="header.title">Adaptive Visualization Assistant</h1>
+        <span class="top-bar-subtitle" data-i18n="header.subtitle">PROPRIETARY 3D DIGITAL TWIN PLATFORM · THINK! DESIGN AND PLANNING, LLC</span>
       </div>
     </div>
 
@@ -44,7 +44,7 @@
     <div class="top-bar-center">
       <div class="sites-scoreboard-pill" onclick="switchView('projects')" title="Browse all project sites">
         <span class="material-symbols-outlined">emoji_events</span>
-        <span class="scoreboard-label">SITES v2</span>
+        <span class="scoreboard-label" data-i18n="header.scoreboard.label">SITES v2</span>
         <span class="scoreboard-divider">·</span>
         <span class="scoreboard-stats" id="scoreboardStats">
           <span id="scoreboardSiteCount">—</span> sites
@@ -81,10 +81,10 @@
   <!-- ============ VIEW TOGGLE (3D View vs Projects) ============ -->
   <div class="view-toggle" id="viewToggle">
     <button class="view-toggle-btn active" id="btnMapView" onclick="switchView('map')">
-      <span class="material-symbols-outlined">view_in_ar</span> 3D View
+      <span class="material-symbols-outlined">view_in_ar</span> <span data-i18n="nav.3dView">3D View</span>
     </button>
     <button class="view-toggle-btn" id="btnProjectsView" onclick="switchView('projects')">
-      <span class="material-symbols-outlined">grid_view</span> Projects
+      <span class="material-symbols-outlined">grid_view</span> <span data-i18n="nav.projects">Projects</span>
     </button>
   </div>
 
@@ -101,15 +101,15 @@
             <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=6" alt="AVA">
             <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
           </div>
-          <span class="ava-name">AVA</span>
-          <span class="ava-role">Adaptive Visualization Assistant</span>
+          <span class="ava-name" data-i18n="ava.name">AVA</span>
+          <span class="ava-role" data-i18n="ava.role">Adaptive Visualization Assistant</span>
         </div>
         <div class="ava-map-messages" id="avaMapMessages">
-          <div class="chat-msg ava">Hi! I'm <strong>AVA</strong>, your Adaptive Visualization Assistant. Select a project on the map or switch to <strong>Projects</strong> to begin designing. You can also ask me to show layers or navigate to any address!</div>
+          <div class="chat-msg ava" data-i18n="ava.welcome">Hi! I'm <strong>AVA</strong>, your Adaptive Visualization Assistant. Select a project on the map or switch to <strong>Projects</strong> to begin designing. You can also ask me to show layers or navigate to any address!</div>
         </div>
         <div class="ava-chat-input">
           <div class="ava-input-row">
-            <textarea id="avaMapChatInput" placeholder="Ask AVA about any site..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleMapChat()}"></textarea>
+            <textarea id="avaMapChatInput" placeholder="Ask AVA about any site..." data-i18n-placeholder="ava.placeholder.map" rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleMapChat()}"></textarea>
             <button class="ava-send-btn" onclick="handleMapChat()">
               <span class="material-symbols-outlined">send</span>
             </button>
@@ -121,12 +121,12 @@
       <div class="design-palette" id="designPalette">
         <div class="palette-header">
           <span class="material-symbols-outlined">palette</span>
-          Design Palette
+          <span data-i18n="palette.title">Design Palette</span>
         </div>
         <div class="palette-body" id="designPaletteContent">
           <div class="palette-placeholder">
             <span class="material-symbols-outlined">construction</span>
-            <p>Plant palette, materials, and design elements will populate here as you design.</p>
+            <p data-i18n="palette.placeholder">Plant palette, materials, and design elements will populate here as you design.</p>
           </div>
         </div>
       </div>
@@ -140,11 +140,11 @@
         <div class="canvas-placeholder" id="canvasPlaceholder">
           <div class="canvas-placeholder-inner">
             <span class="material-symbols-outlined canvas-ph-icon">view_in_ar</span>
-            <h2>3D Adaptive Digital Twin</h2>
-            <p>Powered by CesiumJS &amp; Google Photorealistic Tiles<br>Select a project to begin designing.</p>
+            <h2 data-i18n="canvas.title">3D Adaptive Digital Twin</h2>
+            <p data-i18n="canvas.subtitle">Powered by CesiumJS &amp; Google Photorealistic Tiles<br>Select a project to begin designing.</p>
             <button class="canvas-placeholder-btn" onclick="switchView('projects')">
               <span class="material-symbols-outlined">grid_view</span>
-              Browse Projects
+              <span data-i18n="canvas.browseProjects">Browse Projects</span>
             </button>
           </div>
         </div>
@@ -196,8 +196,8 @@
               <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=6" alt="AVA">
               <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
             </div>
-            <span class="ava-name">AVA</span>
-            <span class="ava-role">Adaptive Visualization Assistant</span>
+            <span class="ava-name" data-i18n="ava.name">AVA</span>
+            <span class="ava-role" data-i18n="ava.role">Adaptive Visualization Assistant</span>
           </div>
           <div class="ava-chat-messages" id="avaChatMessages">
             <!-- Chat messages injected by JS -->
@@ -212,25 +212,25 @@
             <div id="refImagePreview" class="ref-image-preview" style="display:none">
               <img id="refImageThumb" src="" alt="Reference">
               <button class="ref-image-remove" onclick="removeRefImage()" title="Remove reference image">&times;</button>
-              <span class="ref-image-label">Reference image attached</span>
+              <span class="ref-image-label" data-i18n="design.refAttached">Reference image attached</span>
             </div>
             <div class="ava-input-row">
               <button class="ava-ref-upload-btn" onclick="document.getElementById('refImageInput').click()" title="Attach a reference image for design inspiration">
                 <span class="material-symbols-outlined">attach_file</span>
               </button>
               <input type="file" id="refImageInput" accept="image/*" style="display:none" onchange="handleRefImageUpload(event)">
-              <textarea id="promptInput" placeholder="Describe a design element to add..." rows="2"></textarea>
+              <textarea id="promptInput" placeholder="Describe a design element to add..." data-i18n-placeholder="ava.placeholder.design" rows="2"></textarea>
               <button class="ava-send-btn" id="btnVisualize" onclick="handleDesign()">
                 <span class="material-symbols-outlined">send</span>
               </button>
             </div>
             <div class="ava-input-actions">
               <button class="ava-auto-design-btn" onclick="handleDesign('make something beautiful')">
-                <span class="material-symbols-outlined">auto_awesome</span> AVA Auto-Design
+                <span class="material-symbols-outlined">auto_awesome</span> <span data-i18n="design.autoDesign">AVA Auto-Design</span>
               </button>
-              <button class="ava-action-chip" onclick="handleDesign('boost')">🎯 Boost Weakest</button>
+              <button class="ava-action-chip" onclick="handleDesign('boost')" data-i18n="design.boostWeakest">🎯 Boost Weakest</button>
               <button class="ava-action-chip" id="btnMic" onclick="toggleMic()">
-                <span class="material-symbols-outlined" style="font-size:16px">mic</span> Voice
+                <span class="material-symbols-outlined" style="font-size:16px">mic</span> <span data-i18n="design.voice">Voice</span>
               </button>
             </div>
           </div>
@@ -291,7 +291,7 @@
             <span class="score-ring-max">/200</span>
           </div>
         </div>
-        <div class="tier-badge" id="tierBadge">Pre-Certification</div>
+        <div class="tier-badge" id="tierBadge" data-i18n="score.preCert">Pre-Certification</div>
         <div class="tier-medal-container" id="tierMedalContainer"></div>
         <!-- Section Scores -->
         <div class="section-scores" id="sectionScores">
@@ -310,7 +310,7 @@
   <div class="modal-overlay" id="settingsModal">
     <div class="modal-card">
       <div class="modal-header">
-        <span class="modal-title"><span class="material-symbols-outlined">settings</span> Settings</span>
+        <span class="modal-title"><span class="material-symbols-outlined">settings</span> <span data-i18n="settings.title">Settings</span></span>
         <button class="modal-close" onclick="closeModal('settingsModal')"><span class="material-symbols-outlined">close</span></button>
       </div>
       <div class="modal-body">
@@ -340,7 +340,18 @@
             <option value="gemini-2.0-flash">gemini-2.0-flash</option>
           </select>
         </div>
-        <button class="setting-save-btn" onclick="saveSettings()">Save Settings</button>
+        <div class="setting-group">
+          <label data-i18n="settings.language">Language</label>
+          <select id="settingLanguage" onchange="AVA_I18N.setLang(this.value)">
+            <option value="en">🇺🇸 English</option>
+            <option value="es">🇪🇸 Español</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="ar">🇸🇦 العربية</option>
+            <option value="pt">🇧🇷 Português</option>
+          </select>
+        </div>
+        <button class="setting-save-btn" onclick="saveSettings()" data-i18n="settings.save">Save Settings</button>
       </div>
     </div>
   </div>
@@ -349,7 +360,7 @@
   <div class="modal-overlay" id="seasonalModal">
     <div class="modal-card modal-lg" style="max-width:720px">
       <div class="modal-header">
-        <span class="modal-title"><span class="material-symbols-outlined">park</span> Seasonal Views</span>
+        <span class="modal-title"><span class="material-symbols-outlined">park</span> <span data-i18n="seasonal.title">Seasonal Views</span></span>
         <button class="modal-close" onclick="closeModal('seasonalModal')"><span class="material-symbols-outlined">close</span></button>
       </div>
       <div class="modal-body">
@@ -382,7 +393,7 @@
   <div class="modal-overlay" id="communityModal">
     <div class="modal-card modal-lg">
       <div class="modal-header">
-        <span class="modal-title"><span class="material-symbols-outlined">groups</span> Community Designs</span>
+        <span class="modal-title"><span class="material-symbols-outlined">groups</span> <span data-i18n="community.title">Community Designs</span></span>
         <div class="modal-header-actions">
           <button class="modal-action-btn" onclick="AGGREGATE.open()" title="View Aggregate Analysis">
             <span class="material-symbols-outlined">analytics</span> Analysis
@@ -399,7 +410,7 @@
         <div class="community-grid" id="communityGrid">
           <div class="community-empty">
             <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3">landscape</span>
-            <p>No community designs yet. Be the first — design a space and click "Publish to Gallery"!</p>
+            <p data-i18n="community.empty">No community designs yet. Be the first — design a space and click "Publish to Gallery"!</p>
           </div>
         </div>
       </div>
@@ -538,10 +549,25 @@
               <div class="admin-field"><label>Latitude</label><input type="number" id="adminProjectLat" step="0.000001" placeholder="36.0726"></div>
               <div class="admin-field"><label>Longitude</label><input type="number" id="adminProjectLng" step="0.000001" placeholder="-79.7749"></div>
             </div>
+            <div class="admin-row" style="align-items:flex-end">
+              <div class="admin-field" style="flex:0 0 auto">
+                <label>Pin Color</label>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <input type="color" id="adminPinColorPicker" value="#646464" title="Pick a color"
+                    style="width:44px;height:44px;padding:0;border:2px solid #ccc;border-radius:8px;cursor:pointer;background:none">
+                  <div id="adminPinPreview" style="width:44px;height:44px;border-radius:50%;border:2px solid #999;background:rgb(100,100,100);flex-shrink:0"></div>
+                </div>
+              </div>
+              <div class="admin-field" style="flex:1">
+                <label>Hue</label>
+                <input type="range" id="adminPinHue" min="0" max="360" value="0"
+                  style="width:100%;height:12px;-webkit-appearance:none;appearance:none;border-radius:6px;outline:none;cursor:pointer;background:linear-gradient(to right,#f00 0%,#ff0 17%,#0f0 33%,#0ff 50%,#00f 67%,#f0f 83%,#f00 100%)">
+              </div>
+            </div>
             <div class="admin-row">
-              <div class="admin-field"><label>Pin R</label><input type="number" id="adminPinR" min="0" max="255" value="100"></div>
-              <div class="admin-field"><label>Pin G</label><input type="number" id="adminPinG" min="0" max="255" value="100"></div>
-              <div class="admin-field"><label>Pin B</label><input type="number" id="adminPinB" min="0" max="255" value="100"></div>
+              <div class="admin-field"><label>R</label><input type="number" id="adminPinR" min="0" max="255" value="100"></div>
+              <div class="admin-field"><label>G</label><input type="number" id="adminPinG" min="0" max="255" value="100"></div>
+              <div class="admin-field"><label>B</label><input type="number" id="adminPinB" min="0" max="255" value="100"></div>
             </div>
           </fieldset>
           <fieldset class="admin-fieldset">
@@ -634,7 +660,8 @@
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- Scripts — Load order: configs → geo → community → modules → app (orchestrator) -->
+  <!-- Scripts — Load order: i18n → configs → geo → community → modules → app (orchestrator) -->
+  <script src="js/i18n.js"></script>
   <script src="js/site-configs.js"></script>
   <script src="geo.js"></script>
   <script src="js/geo-layers.js"></script>
@@ -650,7 +677,7 @@
   <script src="cre-publish.js"></script>
 
   <!-- Legal Footer -->
-  <div class="think-footer">© 2026 Think! Design and Planning, LLC. All Rights Reserved. &nbsp;·&nbsp; AVA is a proprietary product of Think! Design and Planning, LLC.</div>
+  <div class="think-footer" data-i18n="footer.legal">© 2026 Think! Design and Planning, LLC. All Rights Reserved. &nbsp;·&nbsp; AVA is a proprietary product of Think! Design and Planning, LLC.</div>
 
 </body>
 </html>

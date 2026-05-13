@@ -38,7 +38,8 @@
      ══════════════════════════════════════════════════════════════ */
 
   function getAudioPath(key) {
-    return `assets/audio/en-${key}.wav`;
+    const lang = (window.AVA_I18N && AVA_I18N.getLang()) || 'en';
+    return `assets/audio/${lang}-${key}.wav`;
   }
 
   function hasPreRecording(key) {
@@ -82,7 +83,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: `Say the following text out loud exactly as written: ${text}` }] }],
+              contents: [{ parts: [{ text: _buildTTSPrompt(text) }] }],
               generationConfig: {
                 responseModalities: ['AUDIO'],
                 speechConfig: {
@@ -250,6 +251,18 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     LANGUAGE-AWARE TTS PROMPT BUILDER
+     ══════════════════════════════════════════════════════════════ */
+
+  function _buildTTSPrompt(text) {
+    const lang = (window.AVA_I18N && AVA_I18N.getGeminiLang) ? AVA_I18N.getGeminiLang() : 'English';
+    if (lang === 'English') {
+      return `Say the following text out loud exactly as written: ${text}`;
+    }
+    return `Speak the following text in ${lang}. Say it naturally and fluently: ${text}`;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      PUBLIC API
      ══════════════════════════════════════════════════════════════ */
 
@@ -257,6 +270,12 @@
     speak,
     stop,
     isMuted: () => muted,
+    setLanguage: (code) => {
+      console.log(`[AVA TTS] Language set to: ${code}`);
+      // Language is picked up dynamically from AVA_I18N.getLang() / getGeminiLang()
+      // Pre-recorded WAVs will automatically try {lang}-{key}.wav
+      // Live TTS will inject the language prompt via _buildTTSPrompt()
+    },
     toggleMute: () => {
       muted = !muted;
       localStorage.setItem('ava-voice-muted', muted);

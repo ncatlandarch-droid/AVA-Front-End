@@ -1,0 +1,88 @@
+{
+  "header.title": "Asistente de Visualización Adaptativa",
+  "header.subtitle": "PLATAFORMA PROPIETARIA DE GEMELO DIGITAL 3D · THINK! DESIGN AND PLANNING, LLC",
+  "header.scoreboard.label": "SITES v2",
+  "header.scoreboard.sites": "sitios",
+  "header.scoreboard.avg": "Prom",
+
+  "nav.3dView": "Vista 3D",
+  "nav.projects": "Proyectos",
+
+  "ava.name": "AVA",
+  "ava.role": "Asistente de Visualización Adaptativa",
+  "ava.welcome": "¡Hola! Soy <strong>AVA</strong>, tu Asistente de Visualización Adaptativa. Selecciona un proyecto en el mapa o cambia a <strong>Proyectos</strong> para comenzar a diseñar. ¡También puedes pedirme mostrar capas o navegar a cualquier dirección!",
+  "ava.placeholder.map": "Pregúntale a AVA sobre cualquier sitio...",
+  "ava.placeholder.design": "Describe un elemento de diseño para agregar...",
+
+  "canvas.title": "Gemelo Digital Adaptativo 3D",
+  "canvas.subtitle": "Impulsado por CesiumJS y Google Photorealistic Tiles<br>Selecciona un proyecto para comenzar a diseñar.",
+  "canvas.browseProjects": "Explorar Proyectos",
+
+  "palette.title": "Paleta de Diseño",
+  "palette.placeholder": "La paleta de plantas, materiales y elementos de diseño se llenarán aquí mientras diseñas.",
+
+  "design.baseline": "LÍNEA BASE",
+  "design.designed": "DISEÑADO",
+  "design.iteration": "Iteración",
+  "design.estCost": "COSTO EST.",
+  "design.undo": "Deshacer",
+  "design.download": "Descargar",
+  "design.seasonal": "Vistas Estacionales",
+  "design.costEstimate": "Estimación de Costos",
+  "design.reset": "Restablecer",
+  "design.saveCommunity": "Guardar en Comunidad",
+  "design.autoDesign": "AVA Auto-Diseño",
+  "design.boostWeakest": "🎯 Mejorar Más Débil",
+  "design.voice": "Voz",
+  "design.refAttached": "Imagen de referencia adjunta",
+
+  "mission.label": "🎯 Sugerencia de AVA",
+  "mission.apply": "Aplicar Sugerencia",
+
+  "score.preCert": "Pre-Certificación",
+
+  "settings.title": "Configuración",
+  "settings.cesiumToken": "Token de Cesium Ion",
+  "settings.cesiumPhase": "FASE 2 — TIERRA 3D",
+  "settings.cesiumHelp": "Token gratuito de <a href=\"https://ion.cesium.com/tokens\" target=\"_blank\">ion.cesium.com/tokens</a> — habilita la vista 3D de órbita libre. O configura <strong>CESIUM_TOKEN</strong> en las variables de entorno de Netlify.",
+  "settings.gmapsKey": "Clave API de Google Maps",
+  "settings.gmapsHelp": "Habilita los Google Photorealistic 3D Tiles dentro de Cesium. Requiere <strong>Map Tiles API</strong> activada en Google Cloud Console. O configura <strong>GOOGLE_MAPS_KEY</strong> en las variables de entorno de Netlify.",
+  "settings.geminiKey": "Clave API de Gemini",
+  "settings.geminiHelp": "Obtén una clave gratuita en <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\">aistudio.google.com</a>",
+  "settings.firebaseConfig": "Configuración de Firebase (JSON)",
+  "settings.geminiModel": "Modelo de Gemini",
+  "settings.language": "Idioma",
+  "settings.save": "Guardar Configuración",
+
+  "seasonal.title": "Vistas Estacionales",
+  "seasonal.spring": "🌸 Primavera",
+  "seasonal.summer": "☀️ Verano",
+  "seasonal.fall": "🍂 Otoño",
+  "seasonal.winter": "❄️ Invierno",
+  "seasonal.genSpring": "Generando primavera…",
+  "seasonal.genSummer": "Generando verano…",
+  "seasonal.genFall": "Generando otoño…",
+  "seasonal.genWinter": "Generando invierno…",
+  "seasonal.downloadAll": "Descargar Todo (Compuesto 2×2)",
+
+  "community.title": "Diseños de la Comunidad",
+  "community.analysis": "Análisis",
+  "community.empty": "Aún no hay diseños comunitarios. ¡Sé el primero — diseña un espacio y haz clic en \"Publicar en Galería\"!",
+  "community.hotTopics": "🔥 Temas Populares — Elementos de Diseño Más Solicitados",
+
+  "admin.title": "Administrar Proyectos",
+  "admin.existingProjects": "Proyectos Existentes",
+  "admin.newProject": "Nuevo Proyecto",
+  "admin.importJSON": "Importar JSON",
+  "admin.projectDetails": "Detalles del Proyecto",
+  "admin.exportJSON": "Exportar JSON",
+
+  "cost.title": "Estimación de Costos del Proyecto",
+  "cost.disclaimer": "Estimaciones basadas en costos unitarios de 2024 del Atlántico Medio/SE de EE.UU. Las cantidades se derivan del área del sitio y las palabras clave del diseño. Consulte a un arquitecto paisajista licenciado para la presupuestación del proyecto.",
+  "cost.downloadCSV": "Descargar CSV",
+
+  "footer.legal": "© 2026 Think! Design and Planning, LLC. Todos los Derechos Reservados. · AVA es un producto propietario de Think! Design and Planning, LLC.",
+
+  "toast.saved": "Configuración guardada",
+  "toast.langChanged": "Idioma cambiado a"
+}

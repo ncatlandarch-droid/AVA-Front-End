@@ -127,15 +127,18 @@ window.GEO_LAYERS = (() => {
   }
 
   function _loadRoads() {
-    if (!_mapsKey) { _toast('Google Maps key required for Streets layer', 'warn'); return; }
-    // lyrs=h  →  hybrid overlay: transparent roads + labels on top of any base
-    const provider = new Cesium.UrlTemplateImageryProvider({
-      url:    `https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&key=${_mapsKey}`,
-      credit: new Cesium.Credit('© Google', true)
-    });
-    const layer  = _viewer.imageryLayers.addImageryProvider(provider);
-    layer.alpha  = 0.88;
-    _st.roads.ref = layer;
+    // Primary: ESRI World Transportation overlay (roads + labels, no key needed)
+    // Secondary: Google hybrid overlay (richer labels, requires Maps API key)
+    const url = _mapsKey
+      ? `https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&key=${_mapsKey}`
+      : 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}';
+    const credit = _mapsKey
+      ? new Cesium.Credit('© Google', true)
+      : new Cesium.Credit('© Esri, HERE, Garmin, OpenStreetMap', true);
+    const provider = new Cesium.UrlTemplateImageryProvider({ url, credit });
+    const layer    = _viewer.imageryLayers.addImageryProvider(provider);
+    layer.alpha    = 0.85;
+    _st.roads.ref  = layer;
     _toast('Streets & Labels on', 'success');
   }
 
@@ -150,13 +153,19 @@ window.GEO_LAYERS = (() => {
       strokeWidth:   style.strokeWidth,
       clampToGround: true
     });
-    // Strip all point/billboard/label entities — parcel centroids from Regrid
-    // and any GeoJSON Point features get rendered as billboards by default.
-    // We only want polygon/polyline outlines on the map.
+    // Strip point/billboard/label entities (parcel centroids from Regrid etc).
+    // Set ClassificationType.BOTH so polygons drape over Google Photorealistic
+    // 3D Tiles AND terrain — without this they render below the tile surfaces.
     ds.entities.values.forEach(e => {
       e.billboard = undefined;
       e.point     = undefined;
       e.label     = undefined;
+      if (e.polygon) {
+        e.polygon.classificationType = Cesium.ClassificationType.BOTH;
+      }
+      if (e.polyline) {
+        e.polyline.clampToGround = true;
+      }
     });
     await _viewer.dataSources.add(ds);
     return ds;
@@ -229,11 +238,6 @@ window.GEO_LAYERS = (() => {
 
     // Async-enrich with soils data
     _enrichWithSoils(entity);
-  }
-
-  function _prow(label, val) {
-    if (!val || val === '—' || val === 'null') return '';
-    return `<div class="pcard-row"><span class="pcard-label">${label}</span><span class="pcard-val">${val}</span></div>`;
   }
 
   async function _enrichWithSoils(entity) {

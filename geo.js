@@ -157,6 +157,16 @@ window.GEO = (() => {
       orientation: { heading: 0, pitch: Cesium.Math.toRadians(_initOv.pitch), roll: 0 }
     });
 
+    // Always add ESRI place-name labels as a base imagery layer.
+    // These appear on flat/terrain areas and between 3D tile buildings —
+    // giving street names and city labels without requiring any API key.
+    _cemViewer.imageryLayers.addImageryProvider(
+      new Cesium.UrlTemplateImageryProvider({
+        url:    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+        credit: new Cesium.Credit('© Esri', true)
+      })
+    );
+
     // Load Google Photorealistic 3D Tiles (the actual 3D mesh)
     if (mapsKey) {
       try {
