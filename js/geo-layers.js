@@ -181,12 +181,13 @@ window.GEO_LAYERS = (() => {
     const p = entity.properties;
     _selectedParcel = {
       entity,
-      id:       _prop(p, 'PARCEL_ID','PIN','PARID','APN','parcel_id','pin','PARCELNUMB','Parcel_ID'),
-      owner:    _prop(p, 'OWNER_NAME','OWNER','OWNER1','OWNERNM','OWN_NAME','owner','GRANTEE'),
-      address:  _prop(p, 'SITUS_ADDRESS','SITE_ADDR','SITE_ADDRESS','SITEADDRESS','ADDR','address','PROP_ADDR'),
-      acres:    _prop(p, 'ACREAGE','TOTAL_ACRES','ACRES','GISACRES','CALCACRES','GIS_ACRES','Shape_Area','acres'),
-      landUse:  _prop(p, 'LAND_USE_CD','LAND_USE','LANDUSE','PROP_USE','LU_CODE','propuse'),
-      zone:     _prop(p, 'ZONING','ZONING_CODE','ZONE_CODE','ZONECODE','ZONE_CLASS','zoning'),
+      // Regrid normalized fields first, then county ArcGIS variants
+      id:       _prop(p, 'll_uuid','parcelnumb','PARCEL_ID','PIN','PARID','APN','parcel_id','PARCELNUMB'),
+      owner:    _prop(p, 'owner','OWNER_NAME','OWNER','OWNER1','OWNERNM','OWN_NAME','GRANTEE'),
+      address:  _prop(p, 'sadd','mailadd','SITUS_ADDRESS','SITE_ADDR','SITE_ADDRESS','ADDR','PROP_ADDR'),
+      acres:    _prop(p, 'acres','ACREAGE','TOTAL_ACRES','ACRES','GISACRES','CALCACRES','GIS_ACRES'),
+      landUse:  _prop(p, 'usedesc','usecode','LAND_USE_CD','LAND_USE','LANDUSE','PROP_USE','LU_CODE'),
+      zone:     _prop(p, 'zoning','zoning_description','ZONING','ZONING_CODE','ZONE_CODE','ZONECODE'),
       soilName: null,
       hydroGrp: null,
     };

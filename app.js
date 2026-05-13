@@ -731,13 +731,17 @@ function loadSettings() {
   if (fbConfig) {
     try {
       const config = JSON.parse(fbConfig);
-      if (typeof COMMUNITY !== 'undefined') COMMUNITY.init(config);
-    } catch (e) { console.warn('[AVA] Cached Firebase config invalid, refetching'); }
+      if (typeof COMMUNITY !== 'undefined') {
+        COMMUNITY.init(config);
+        if (typeof ADMIN !== 'undefined') ADMIN.init();
+      }
+    } catch (e) {
+      console.warn('[AVA] Cached Firebase config invalid, refetching');
+      _fetchFirebaseConfig();
+    }
   } else {
     _fetchFirebaseConfig();
   }
-
-  if (typeof ADMIN !== 'undefined') setTimeout(() => ADMIN.init(), 1000);
 }
 
 async function _fetchFirebaseConfig() {
@@ -745,7 +749,10 @@ async function _fetchFirebaseConfig() {
     const resp = await fetch('/.netlify/functions/firebase-config');
     if (!resp.ok) return;
     const config = await resp.json();
-    if (config.apiKey && typeof COMMUNITY !== 'undefined') COMMUNITY.init(config);
+    if (config.apiKey && typeof COMMUNITY !== 'undefined') {
+      COMMUNITY.init(config);
+      if (typeof ADMIN !== 'undefined') ADMIN.init();
+    }
   } catch (e) {
     console.warn('[AVA] Could not load Firebase config from server:', e.message);
   }

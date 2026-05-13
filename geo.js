@@ -183,8 +183,16 @@ window.GEO = (() => {
 
     if (window.GEO_LAYERS) GEO_LAYERS.init(_cemViewer, mapsKey);
 
-    // Refine marker positions to actual tile surface once initial tiles stream in
+    // Initial clamp — runs after first tile batch streams in
     setTimeout(_cemClampMarkersToSurface, 3500);
+
+    // Re-clamp after every camera move so markers stay on tile surface as
+    // new high-detail tiles stream in when zooming to a project site
+    let _clampTimer = null;
+    _cemViewer.camera.changed.addEventListener(() => {
+      clearTimeout(_clampTimer);
+      _clampTimer = setTimeout(_cemClampMarkersToSurface, 1200);
+    });
 
     // Keep popup anchored to marker as camera moves
     _cemViewer.scene.postRender.addEventListener(() => {

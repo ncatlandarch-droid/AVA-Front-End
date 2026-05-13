@@ -64,9 +64,35 @@ async function arcgisQuery(urls, params) {
 }
 
 // ---------------------------------------------------------------------------
-// Parcels — Guilford County ArcGIS (multiple candidate URLs)
+// Parcels — Regrid API (nationwide, normalized fields) → county ArcGIS fallback
 // ---------------------------------------------------------------------------
 async function fetchParcels(w, s, e, n) {
+  const REGRID_KEY = Netlify.env.get('REGRID_API_KEY');
+
+  if (REGRID_KEY) {
+    try {
+      const url = `https://app.regrid.com/api/v2/parcels/geojson?bbox=${w},${s},${e},${n}&token=${REGRID_KEY}&limit=500`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data?.features?.length) {
+          // Flatten properties.fields → properties so field names are top-level
+          data.features.forEach(f => {
+            if (f.properties?.fields) {
+              const flat = f.properties.fields;
+              f.properties = { ...f.properties, ...flat };
+              delete f.properties.fields;
+            }
+          });
+          return geojsonResp(data);
+        }
+      }
+    } catch (e) {
+      console.warn('[gis-proxy] Regrid failed, trying county ArcGIS:', e.message);
+    }
+  }
+
+  // Fallback: county ArcGIS servers
   const params = new URLSearchParams({
     where: '1=1',
     geometry: `${w},${s},${e},${n}`,
@@ -83,7 +109,6 @@ async function fetchParcels(w, s, e, n) {
     'https://maps.guilfordcountync.gov/arcgis/rest/services/Guilford_Parcels/MapServer/0/query',
     'https://maps.guilfordcountync.gov/arcgis/rest/services/BaseLayers/ParcelViewer/MapServer/0/query',
     'https://gis.guilfordcountync.gov/arcgis/rest/services/Parcels/FeatureServer/0/query',
-    // NC OneMap statewide parcel fallback (public)
     'https://services.nconemap.gov/secure/rest/services/NC1Map_Parcels/FeatureServer/0/query',
   ], params);
 
