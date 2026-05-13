@@ -23,6 +23,9 @@ window.GEO_LAYERS = (() => {
   let _mapsKey = null;
   let _selectedParcel = null;
   let _panelVisible   = false;
+  let _panelMinimized = false;
+  const STORE_KEY_PANEL = 'ava-layer-panel-vis';
+  const STORE_KEY_MIN   = 'ava-layer-panel-min';
 
   const PROXY = '/.netlify/functions/gis-proxy';
   const MAX_BBOX_DEG  = 0.12;   // ~12 km — refuse queries wider than this
@@ -330,42 +333,81 @@ window.GEO_LAYERS = (() => {
     const canvas = document.getElementById('three-canvas');
     if (!hud || !canvas) return;
 
+    // Inject layer-panel CSS once
+    _injectStyles();
+
+    // Restore previous panel state from localStorage
+    const storedVis = localStorage.getItem(STORE_KEY_PANEL);
+    const storedMin = localStorage.getItem(STORE_KEY_MIN);
+    _panelVisible   = storedVis === 'true';
+    _panelMinimized = storedMin === 'true';
+
     // Layer panel (fixed, above viewport)
     const panel = document.createElement('div');
     panel.id        = 'ava-layer-panel';
     panel.className = 'ava-layer-panel';
-    panel.style.display = 'none';
+    panel.style.display = _panelVisible ? 'block' : 'none';
     canvas.appendChild(panel);
 
-    const hdr = document.createElement('h4');
-    hdr.textContent = 'DATA LAYERS';
+    // Header with title + minimize button
+    const hdr = document.createElement('div');
+    hdr.className = 'layer-panel-header';
+    hdr.innerHTML = `
+      <span class="layer-panel-title">DATA LAYERS</span>
+      <button class="layer-panel-minimize" id="layer-min-btn" title="Minimize panel">
+        <span class="material-symbols-outlined" style="font-size:16px;font-weight:400">expand_less</span>
+      </button>`;
     panel.appendChild(hdr);
+
+    // Layer rows container (for minimize/expand)
+    const body = document.createElement('div');
+    body.id = 'layer-panel-body';
+    body.className = 'layer-panel-body';
+    if (_panelMinimized) body.style.display = 'none';
+    panel.appendChild(body);
 
     LAYER_DEFS.forEach(def => {
       const row = document.createElement('div');
       row.className = 'layer-row';
       row.id        = `layer-row-${def.id}`;
       row.innerHTML = `
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"
-               onclick="GEO_LAYERS.toggle('${def.id}')">
-          <span style="font-family:'Material Symbols Outlined';font-size:14px;
-                       color:${def.accent};opacity:0.8;font-weight:400">${def.icon}</span>
-          ${def.label}
+        <label class="layer-row-label" onclick="GEO_LAYERS.toggle('${def.id}')">
+          <span class="material-symbols-outlined layer-icon" style="color:${def.accent}">${def.icon}</span>
+          <span class="layer-label-text">${def.label}</span>
         </label>
         <button class="layer-toggle-btn" id="layer-tb-${def.id}"
                 onclick="GEO_LAYERS.toggle('${def.id}')" title="Toggle ${def.label}">
+          <span class="layer-toggle-track"><span class="layer-toggle-thumb"></span></span>
         </button>`;
-      panel.appendChild(row);
+      body.appendChild(row);
     });
+
+    // Minimize button handler
+    const minBtn = document.getElementById('layer-min-btn');
+    minBtn.addEventListener('click', () => {
+      _panelMinimized = !_panelMinimized;
+      body.style.display = _panelMinimized ? 'none' : '';
+      minBtn.querySelector('.material-symbols-outlined').textContent =
+        _panelMinimized ? 'expand_more' : 'expand_less';
+      minBtn.title = _panelMinimized ? 'Expand panel' : 'Minimize panel';
+      localStorage.setItem(STORE_KEY_MIN, _panelMinimized);
+    });
+    // Set initial icon
+    if (_panelMinimized) {
+      minBtn.querySelector('.material-symbols-outlined').textContent = 'expand_more';
+      minBtn.title = 'Expand panel';
+    }
 
     // HUD toggle button (same style as Campus / Walk / N↑)
     const btn = _hudBtn('layers', 'Layers', () => {
       _panelVisible = !_panelVisible;
       panel.style.display = _panelVisible ? 'block' : 'none';
-      btn.style.background = _panelVisible ? 'rgba(253,185,39,0.9)' : 'rgba(0,0,0,0.88)';
-      btn.style.color      = _panelVisible ? '#000' : '#fff';
+      btn.style.background = _panelVisible ? 'rgba(0,70,132,0.95)' : 'rgba(0,0,0,0.88)';
+      btn.style.color      = '#fff';
+      localStorage.setItem(STORE_KEY_PANEL, _panelVisible);
     });
     btn.id = 'ava-layer-hud-btn';
+    if (_panelVisible) btn.style.background = 'rgba(0,70,132,0.95)';
     hud.appendChild(btn);
 
     // Parcel info card
@@ -379,10 +421,179 @@ window.GEO_LAYERS = (() => {
   function _refreshRow(layerId) {
     const st = _st[layerId];
     const tb = document.getElementById(`layer-tb-${layerId}`);
+    const row = document.getElementById(`layer-row-${layerId}`);
     if (!tb) return;
     tb.style.opacity = st.loading ? '0.5' : '1';
     tb.classList.toggle('active', !!st.active);
+    if (row) row.classList.toggle('on', !!st.active);
     tb.title = st.loading ? 'Loading…' : (st.active ? 'ON — click to hide' : 'OFF — click to show');
+  }
+
+  /* ── Injected CSS for the layer panel ───────────────────── */
+  function _injectStyles() {
+    if (document.getElementById('ava-layer-css')) return;
+    const s = document.createElement('style');
+    s.id = 'ava-layer-css';
+    s.textContent = `
+      .ava-layer-panel {
+        position: absolute;
+        top: 52px;
+        right: 12px;
+        z-index: 40;
+        background: rgba(0, 20, 50, 0.92);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        min-width: 220px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        font-family: 'Inter', system-ui, sans-serif;
+        color: #fff;
+        overflow: hidden;
+        transition: opacity 0.2s;
+      }
+      .layer-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px 8px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .layer-panel-title {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.65);
+      }
+      .layer-panel-minimize {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.5);
+        cursor: pointer;
+        padding: 2px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        transition: color 0.15s, background 0.15s;
+      }
+      .layer-panel-minimize:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.1);
+      }
+      .layer-panel-body {
+        padding: 6px 0;
+      }
+      .layer-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 14px;
+        transition: background 0.15s;
+      }
+      .layer-row:hover {
+        background: rgba(255,255,255,0.06);
+      }
+      .layer-row.on {
+        background: rgba(0, 70, 132, 0.25);
+      }
+      .layer-row-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+      .layer-icon {
+        font-size: 16px !important;
+        font-weight: 400;
+        opacity: 0.8;
+      }
+      /* Toggle switch */
+      .layer-toggle-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        flex-shrink: 0;
+      }
+      .layer-toggle-track {
+        display: block;
+        width: 32px;
+        height: 18px;
+        background: rgba(255,255,255,0.15);
+        border-radius: 10px;
+        position: relative;
+        transition: background 0.2s;
+      }
+      .layer-toggle-thumb {
+        display: block;
+        width: 14px;
+        height: 14px;
+        background: rgba(255,255,255,0.5);
+        border-radius: 50%;
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        transition: transform 0.2s, background 0.2s;
+      }
+      .layer-toggle-btn.active .layer-toggle-track {
+        background: rgba(0, 100, 200, 0.8);
+      }
+      .layer-toggle-btn.active .layer-toggle-thumb {
+        transform: translateX(14px);
+        background: #fff;
+      }
+      /* Parcel card */
+      .ava-parcel-card {
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+        z-index: 45;
+        background: rgba(0, 20, 50, 0.92);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 12px;
+        padding: 16px;
+        min-width: 240px;
+        max-width: 320px;
+        color: #fff;
+        font-family: 'Inter', system-ui, sans-serif;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      }
+      .pcard-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.5);
+        cursor: pointer;
+      }
+      .pcard-close:hover { color: #fff; }
+      .pcard-pin { font-size: 10px; color: rgba(255,255,255,0.5); letter-spacing: 1px; margin-bottom: 4px; }
+      .pcard-owner { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+      .pcard-address { font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 8px; }
+      .pcard-meta { display: flex; gap: 10px; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 8px; }
+      .pcard-soils { font-size: 11px; color: rgba(76,175,80,0.9); margin-bottom: 10px; }
+      .pcard-actions { display: flex; gap: 8px; }
+      .pcard-btn {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+      .pcard-btn:hover { opacity: 0.85; }
+      .pcard-btn-create { background: linear-gradient(135deg, #004684, #002B52); color: #fff; }
+      .pcard-btn-design { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+    `;
+    document.head.appendChild(s);
   }
 
   function _hudBtn(icon, label, onClick) {
@@ -396,7 +607,7 @@ window.GEO_LAYERS = (() => {
       'transition:background 0.15s,color 0.15s'
     ].join(';');
     b.innerHTML = `<span style="font-family:'Material Symbols Outlined';font-size:15px;font-weight:400">${icon}</span>${label}`;
-    b.onmouseenter = () => { if (b.id !== 'ava-layer-hud-btn' || !_panelVisible) b.style.background = 'rgba(40,40,40,0.95)'; };
+    b.onmouseenter = () => { if (b.id !== 'ava-layer-hud-btn' || !_panelVisible) b.style.background = 'rgba(0,60,120,0.95)'; };
     b.onmouseleave = () => { if (b.id !== 'ava-layer-hud-btn' || !_panelVisible) b.style.background = 'rgba(0,0,0,0.88)'; };
     b.addEventListener('click', onClick);
     return b;
