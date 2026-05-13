@@ -174,6 +174,11 @@ window.GEO = (() => {
           `https://tile.googleapis.com/v1/3dtiles/root.json?key=${encodeURIComponent(mapsKey)}`
         );
         _cemViewer.scene.primitives.add(tileset);
+        // Load Cesium World Terrain alongside 3D tiles so CLAMP_TO_GROUND
+        // has accurate ellipsoid heights — without this, pins clamp to sea level.
+        Cesium.createWorldTerrainAsync({ requestVertexNormals: false })
+          .then(tp => { if (_cemViewer) _cemViewer.terrainProvider = tp; })
+          .catch(() => {});
         if (placeholder) placeholder.style.display = 'none';
         if (typeof showToast === 'function') showToast('Campus 3D map loaded', 'success');
       } catch (e) {

@@ -11,16 +11,22 @@ const ADMIN = {
   /* ═══════ INIT ═══════ */
 
   init() {
-    // Show/hide admin button based on role
     this._updateAdminVisibility();
-    // Listen for Firestore projects and merge into SITE_CONFIGS
-    if (typeof COMMUNITY !== 'undefined' && COMMUNITY.initialized) {
-      COMMUNITY.listenProjects(projects => {
-        this._mergeProjects(projects);
-      });
-    }
-    // Wire up color picker sync
     this._initColorPicker();
+    // Firebase may still be handshaking when init() is called.
+    // Poll every 400ms (up to 15s) until COMMUNITY signals ready,
+    // then wire up the project listener exactly once.
+    let _listenWired = false;
+    const _tryListen = (attempt = 0) => {
+      if (_listenWired) return;
+      if (typeof COMMUNITY !== 'undefined' && COMMUNITY.initialized) {
+        _listenWired = true;
+        COMMUNITY.listenProjects(projects => this._mergeProjects(projects));
+      } else if (attempt < 37) {
+        setTimeout(() => _tryListen(attempt + 1), 400);
+      }
+    };
+    _tryListen();
   },
 
   /* ═══════ COLOR PICKER SYNC ═══════ */
