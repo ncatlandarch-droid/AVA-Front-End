@@ -142,7 +142,7 @@ const GALLERY = {
         </div>
         <div class="community-card-info">
           <div class="community-card-header">
-            <span class="community-card-author">${escapeHTML(d.authorName || 'Aggie Designer')}</span>
+            <span class="community-card-author">${escapeHTML(d.authorName || 'Designer')}</span>
             <span class="community-card-site">${escapeHTML(siteName)}</span>
           </div>
           <div class="community-card-score">${d.sitesScore || 0}/200 pts</div>

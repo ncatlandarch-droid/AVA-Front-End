@@ -70,7 +70,7 @@ const COMMUNITY = {
   },
 
   _generateAnonName() {
-    const adjectives = ['Bold', 'Creative', 'Inspired', 'Aggie', 'Dynamic', 'Visionary', 'Brilliant', 'Innovative', 'Determined', 'Resilient'];
+    const adjectives = ['Bold', 'Creative', 'Inspired', 'Talented', 'Dynamic', 'Visionary', 'Brilliant', 'Innovative', 'Determined', 'Resilient'];
     const nouns = ['Designer', 'Architect', 'Planner', 'Builder', 'Creator', 'Visionary', 'Thinker', 'Maker', 'Dreamer', 'Artist'];
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
@@ -186,7 +186,7 @@ const COMMUNITY = {
       // Determine author name
       const authorName = this.user.isAnonymous
         ? (localStorage.getItem('ava_anon_name') || (() => { const n = this._generateAnonName(); localStorage.setItem('ava_anon_name', n); return n; })())
-        : (this.user.displayName || 'Aggie Designer');
+        : (this.user.displayName || 'Designer');
 
       // Save to Firestore
       const config = SITE_CONFIGS[siteId];

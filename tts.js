@@ -226,12 +226,12 @@
   /* ── Coaching text for pre-recorded keys (used as fallback if WAV missing) ── */
   function getCoachingText(key) {
     const texts = {
-      'welcome': "Hi! I'm AVA, your Aggie Visualization Assistant. Tap a project pin on the campus map, or switch to Projects to browse all sites.",
+      'welcome': "Hi! I'm AVA, your Adaptive Visualization Assistant. Tap a project pin on the map, or switch to Projects to browse all sites.",
       'design_welcome': "Welcome to the design studio! Describe a landscape element you'd like to add, or let me auto-design something beautiful.",
       'tier_certified': "Congratulations! You've reached SITES Certified status! Your design is making a real difference.",
-      'tier_silver': "Silver tier! Your design is showing real sustainability impact. Keep going, Aggie!",
-      'tier_gold': "Gold tier achieved! Outstanding sustainable design work, Aggie! You're almost at the top.",
-      'tier_platinum': "Platinum! You've mastered all SITES v2 focus areas. Incredible work, Aggie Architect!",
+      'tier_silver': "Silver tier! Your design is showing real sustainability impact. Keep pushing!",
+      'tier_gold': "Gold tier achieved! Outstanding sustainable design work! You're almost at the top.",
+      'tier_platinum': "Platinum! You've mastered all SITES v2 focus areas. Incredible work, Architect!",
       'boost_applied': "Great! I've targeted the weakest scoring area to maximize your sustainability points."
     };
     return texts[key] || null;
