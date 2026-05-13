@@ -53,10 +53,9 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
   100% { background-position: 0% 50%; }
 }
 .top-bar-ava-logo {
-  height: 50px; display: flex; align-items: center;
+  height: 50px; width: auto; object-fit: contain;
   filter: drop-shadow(0 1px 4px rgba(0,0,0,0.5));
 }
-.top-bar-ava-logo svg { height: 46px; width: auto; }
 /* Think! footer */
 .think-footer {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;

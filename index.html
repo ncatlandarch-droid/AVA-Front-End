@@ -33,20 +33,9 @@
   <!-- ============ TOP HEADER BAR ============ -->
   <header class="top-bar">
     <div class="top-bar-left">
-      <div class="top-bar-ava-logo" aria-label="AVA Logo">
-        <svg viewBox="0 0 320 140" xmlns="http://www.w3.org/2000/svg" height="46" width="auto">
-          <!-- Left A (ghost white outline) -->
-          <polyline points="20,130 70,10 120,130" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-          <line x1="45" y1="85" x2="95" y2="85" stroke="rgba(255,255,255,0.25)" stroke-width="7" stroke-linecap="round"/>
-          <!-- Center V (bold magenta) -->
-          <polyline points="100,10 160,130 220,10" fill="none" stroke="#e020e0" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
-          <!-- Right A (ghost white outline) -->
-          <polyline points="200,130 250,10 300,130" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-          <line x1="225" y1="85" x2="275" y2="85" stroke="rgba(255,255,255,0.25)" stroke-width="7" stroke-linecap="round"/>
-        </svg>
-      </div>
+      <img src="ava logo.png" alt="AVA" class="top-bar-ava-logo">
       <div class="top-bar-brand">
-        <h1><span class="ava-a">A</span>daptive <span class="ava-v">V</span>isualization <span class="ava-a">A</span>ssistant</h1>
+        <h1>Adaptive Visualization Assistant</h1>
         <span class="top-bar-subtitle">PROPRIETARY 3D DIGITAL TWIN PLATFORM · THINK! DESIGN AND PLANNING, LLC</span>
       </div>
     </div>
@@ -109,7 +98,7 @@
       <div class="ava-chat-panel sidebar-ava">
         <div class="ava-portrait-block">
           <div class="ava-avatar-wrapper" onclick="handleAvaClick()" title="Click to hear AVA speak">
-            <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=4" alt="AVA">
+            <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=5" alt="AVA">
             <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
           </div>
           <span class="ava-name">AVA</span>
@@ -204,7 +193,7 @@
         <div class="ava-chat-panel">
           <div class="ava-portrait-block">
             <div class="ava-avatar-wrapper" onclick="handleAvaClick()" title="Click to hear AVA speak">
-              <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=4" alt="AVA">
+              <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=5" alt="AVA">
               <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
             </div>
             <span class="ava-name">AVA</span>
@@ -648,6 +637,7 @@
   <!-- Scripts — Load order: configs → geo → community → modules → app (orchestrator) -->
   <script src="js/site-configs.js"></script>
   <script src="geo.js"></script>
+  <script src="js/geo-layers.js"></script>
   <script src="community.js"></script>
   <script src="tts.js"></script>
   <script src="js/design-engine.js"></script>

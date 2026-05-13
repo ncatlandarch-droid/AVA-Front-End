@@ -283,4 +283,48 @@ async function imageToBase64(src) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Plan View Capture — listen for overhead parcel screenshot from GEO_LAYERS
+// ---------------------------------------------------------------------------
+document.addEventListener('ava:planViewCapture', async (evt) => {
+  const { imageDataUrl, parcel, soils, area, address, siteId } = evt.detail || {};
+  if (!imageDataUrl) return;
+
+  // Build an enriched plan-view prompt using parcel context
+  const soilLine = soils ? `Soil: ${soils}.` : '';
+  const areaLine = area  ? `Site area: ${area} acres.` : '';
+  const addrLine = address ? `Location: ${address}.` : '';
+  const prompt = [
+    'You are AVA, an expert landscape architect and sustainable site designer.',
+    'I am sharing an overhead aerial view of a site captured from a 3D digital twin.',
+    addrLine, areaLine, soilLine,
+    'Generate a detailed conceptual landscape master plan for this site.',
+    'Include: circulation paths, planting zones, stormwater features, gathering spaces,',
+    'and any sustainability opportunities evident from the site geometry.',
+    'Describe your design decisions and provide a rendered plan view image.'
+  ].filter(Boolean).join(' ');
+
+  // Pre-fill the design prompt textarea if it exists and trigger generation
+  const textarea = document.getElementById('designPrompt') || document.querySelector('[data-design-prompt]');
+  if (textarea) {
+    textarea.value = prompt;
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  // Switch to design panel if tab exists
+  const designTab = document.querySelector('[data-tab="design"], [data-panel="design"], #tab-design');
+  if (designTab) designTab.click();
+
+  // If AVA chat is active, inject the image + prompt as a user message
+  if (window.STATE?.siteId || siteId) {
+    const imageBase64 = imageDataUrl.split(',')[1];
+    const mimeType = imageDataUrl.startsWith('data:image/jpeg') ? 'image/jpeg' : 'image/png';
+    try {
+      await window.sendDesignMessage?.({ prompt, imageBase64, mimeType });
+    } catch (_) {
+      // sendDesignMessage may not be exposed; textarea pre-fill is the fallback
+    }
+  }
+});
+
 window.DESIGN_ENGINE={scoreSITESv2,getTier,getBoostPrompt,getAutoDesignPrompt,buildGeminiPrompt,callGeminiAPI,imageToBase64,computePenalties,getScoringReasons};
