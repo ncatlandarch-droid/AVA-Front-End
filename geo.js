@@ -215,7 +215,7 @@ window.GEO = (() => {
       const popup = document.getElementById('cem-popup');
       if (!popup || popup.style.display === 'none') return;
       const worldPos  = Cesium.Cartesian3.fromDegrees(site.lng, site.lat, CAMPUS_ALT);
-      const screenPos = Cesium.SceneTransforms.worldToWindowCoordinates(_cemViewer.scene, worldPos);
+      const screenPos = _cemViewer.scene.cartesianToCanvasCoordinates(worldPos);
       if (screenPos) {
         popup.style.left = screenPos.x + 'px';
         popup.style.top  = (screenPos.y - 300) + 'px';
@@ -469,7 +469,7 @@ window.GEO = (() => {
 
     // Initial position — postRender listener keeps it tracked as camera moves
     const worldPos  = Cesium.Cartesian3.fromDegrees(site.lng, site.lat, CAMPUS_ALT);
-    const screenPos = Cesium.SceneTransforms.worldToWindowCoordinates(_cemViewer.scene, worldPos);
+    const screenPos = _cemViewer.scene.cartesianToCanvasCoordinates(worldPos);
     if (screenPos) {
       popup.style.left = screenPos.x + 'px';
       popup.style.top  = (screenPos.y - 300) + 'px';
