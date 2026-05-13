@@ -33,13 +33,16 @@
   <!-- ============ TOP HEADER BAR ============ -->
   <header class="top-bar">
     <div class="top-bar-left">
-      <div class="top-bar-ava-logo" aria-label="AVA V Logo">
-        <svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg" height="46" width="auto">
-          <style>
-            @keyframes vColorHdr{0%{stroke:#7c3aed}16%{stroke:#3b82f6}33%{stroke:#06b6d4}50%{stroke:#10b981}66%{stroke:#ef4444}83%{stroke:#8b5cf6}100%{stroke:#7c3aed}}
-            .vh{fill:none;stroke:#7c3aed;stroke-width:14;stroke-linecap:round;stroke-linejoin:round;animation:vColorHdr 8s ease-in-out infinite}
-          </style>
-          <polyline points="10,10 60,130 110,10" class="vh"/>
+      <div class="top-bar-ava-logo" aria-label="AVA Logo">
+        <svg viewBox="0 0 320 140" xmlns="http://www.w3.org/2000/svg" height="46" width="auto">
+          <!-- Left A (ghost white outline) -->
+          <polyline points="20,130 70,10 120,130" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="45" y1="85" x2="95" y2="85" stroke="rgba(255,255,255,0.25)" stroke-width="7" stroke-linecap="round"/>
+          <!-- Center V (bold magenta) -->
+          <polyline points="100,10 160,130 220,10" fill="none" stroke="#e020e0" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Right A (ghost white outline) -->
+          <polyline points="200,130 250,10 300,130" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="225" y1="85" x2="275" y2="85" stroke="rgba(255,255,255,0.25)" stroke-width="7" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="top-bar-brand">
@@ -106,7 +109,7 @@
       <div class="ava-chat-panel sidebar-ava">
         <div class="ava-portrait-block">
           <div class="ava-avatar-wrapper" onclick="handleAvaClick()" title="Click to hear AVA speak">
-            <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=2" alt="AVA">
+            <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=3" alt="AVA">
             <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
           </div>
           <span class="ava-name">AVA</span>
@@ -201,7 +204,7 @@
         <div class="ava-chat-panel">
           <div class="ava-portrait-block">
             <div class="ava-avatar-wrapper" onclick="handleAvaClick()" title="Click to hear AVA speak">
-              <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=2" alt="AVA">
+              <img class="ava-portrait-img" src="baselines/ava-avatar.jpg?v=3" alt="AVA">
               <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
             </div>
             <span class="ava-name">AVA</span>
