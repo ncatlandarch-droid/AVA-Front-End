@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AVA — Adaptive Visualization Assistant | Think! Design and Planning, LLC</title>
+  <meta name="description" content="AVA: Adaptive Visualization Assistant — Proprietary 3D Digital Twin platform for AI-powered landscape design and SITES v2 sustainability scoring. Powered by Think! Design and Planning, LLC.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+
+  <!-- Confetti (Tier Celebrations) -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Leaflet (campus map — no API key required) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="ava-logo.png" type="image/png">
+</head>
+<body>
+
+  <!-- ============ TOP HEADER BAR ============ -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <img src="ava-logo.png" alt="AVA" class="top-bar-ava-logo">
+      <div class="top-bar-brand">
+        <h1><span class="gold">A</span>daptive <span class="gold">V</span>isualization <span class="gold">A</span>ssistant</h1>
+        <span class="top-bar-subtitle">PROPRIETARY 3D DIGITAL TWIN PLATFORM · THINK! DESIGN AND PLANNING, LLC</span>
+      </div>
+    </div>
+
+    <!-- SITES v2 Scoreboard (center) — populated by JS from SITE_CONFIGS -->
+    <div class="top-bar-center">
+      <div class="sites-scoreboard-pill" onclick="switchView('projects')" title="Browse all project sites">
+        <span class="material-symbols-outlined">emoji_events</span>
+        <span class="scoreboard-label">SITES v2</span>
+        <span class="scoreboard-divider">·</span>
+        <span class="scoreboard-stats" id="scoreboardStats">
+          <span id="scoreboardSiteCount">—</span> sites
+          &nbsp;·&nbsp;
+          Avg: <strong id="scoreboardTopScore">—</strong>/200
+        </span>
+      </div>
+    </div>
+
+    <div class="top-bar-right">
+      <!-- Community Gallery -->
+      <button class="top-btn" id="btnCommunity" onclick="openModal('communityModal')" title="Community Gallery">
+        <span class="material-symbols-outlined">groups</span>
+      </button>
+
+      <!-- Admin: Manage Projects (hidden for non-admins) -->
+      <button class="top-btn" id="btnAdminProjects" style="display:none" onclick="ADMIN.renderProjectList();openModal('adminProjectModal')" title="Manage Projects (Admin)">
+        <span class="material-symbols-outlined">shield_person</span>
+      </button>
+
+      <!-- Settings -->
+      <button class="top-btn" id="btnSettings" onclick="openModal('settingsModal')" title="Settings">
+        <span class="material-symbols-outlined">settings</span>
+      </button>
+
+      <!-- Auth -->
+      <button class="top-btn" id="btnAuth" onclick="handleAuth()" title="Sign In">
+        <span class="material-symbols-outlined" id="authIcon">person</span>
+      </button>
+
+    </div>
+  </header>
+
+  <!-- ============ VIEW TOGGLE (3D View vs Projects) ============ -->
+  <div class="view-toggle" id="viewToggle">
+    <button class="view-toggle-btn active" id="btnMapView" onclick="switchView('map')">
+      <span class="material-symbols-outlined">view_in_ar</span> 3D View
+    </button>
+    <button class="view-toggle-btn" id="btnProjectsView" onclick="switchView('projects')">
+      <span class="material-symbols-outlined">grid_view</span> Projects
+    </button>
+  </div>
+
+  <!-- ============ MAIN APP WORKSPACE (Sidebar + 3D Canvas) ============ -->
+  <div class="app-workspace" id="appWorkspace">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="left-sidebar">
+
+      <!-- AVA Chat Panel -->
+      <div class="ava-chat-panel sidebar-ava">
+        <div class="ava-portrait-block">
+          <div class="ava-avatar-wrapper" onclick="handleAvaClick()" title="Click to hear AVA speak">
+            <img class="ava-portrait-img" src="baselines/ava-avatar.jpg" alt="AVA">
+            <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
+          </div>
+          <span class="ava-name">AVA</span>
+          <span class="ava-role">Adaptive Visualization Assistant</span>
+        </div>
+        <div class="ava-map-messages" id="avaMapMessages">
+          <div class="chat-msg ava">Hi! I'm <strong>AVA</strong>, your Adaptive Visualization Assistant. Select a project below to begin designing your sustainable landscape.</div>
+        </div>
+        <div class="ava-chat-input">
+          <div class="ava-input-row">
+            <textarea id="avaMapChatInput" placeholder="Ask AVA about any site..." rows="2" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleMapChat()}"></textarea>
+            <button class="ava-send-btn" onclick="handleMapChat()">
+              <span class="material-symbols-outlined">send</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Design Palette (empty, structurally ready for V.4.x) -->
+      <div class="design-palette" id="designPalette">
+        <div class="palette-header">
+          <span class="material-symbols-outlined">palette</span>
+          Design Palette
+        </div>
+        <div class="palette-body" id="designPaletteContent">
+          <div class="palette-placeholder">
+            <span class="material-symbols-outlined">construction</span>
+            <p>Plant palette, materials, and design elements will populate here as you design.</p>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- MAIN 3D CANVAS AREA -->
+    <main class="canvas-main" id="canvasMain">
+      <!-- WebGL / Three.js mounts here -->
+      <div id="three-canvas">
+        <div class="canvas-placeholder" id="canvasPlaceholder">
+          <div class="canvas-placeholder-inner">
+            <span class="material-symbols-outlined canvas-ph-icon">view_in_ar</span>
+            <h2>3D Adaptive Digital Twin</h2>
+            <p>Powered by CesiumJS &amp; Google Photorealistic Tiles<br>Select a project to begin designing.</p>
+            <button class="canvas-placeholder-btn" onclick="switchView('projects')">
+              <span class="material-symbols-outlined">grid_view</span>
+              Browse Projects
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Canvas HUD — future orbit controls, camera views, layer toggles -->
+      <div class="canvas-hud" id="canvasHud"></div>
+    </main>
+
+  </div>
+
+  <!-- ============ PROJECTS GALLERY (Full Viewport, hidden by default) ============ -->
+  <div class="projects-gallery-view" id="projectsGalleryView" style="display:none">
+    <div class="projects-gallery-grid" id="projectsGalleryGrid">
+      <!-- Populated by JS as project cards -->
+    </div>
+    <!-- Community Designs Gallery (below project cards) -->
+    <div class="community-gallery-section" id="communityGallerySection">
+      <!-- Populated by gallery-panel.js -->
+    </div>
+  </div>
+
+  <!-- ============ DESIGN WORKSPACE (Full Viewport Overlay) ============ -->
+  <div class="bottom-sheet" id="designSheet">
+    <!-- Drag Handle -->
+    <div class="sheet-handle" id="sheetHandle">
+      <div class="sheet-handle-bar"></div>
+    </div>
+
+    <!-- Sheet Header -->
+    <div class="sheet-header">
+      <div class="sheet-site-info">
+        <span class="material-symbols-outlined">landscape</span>
+        <span id="sheetSiteName">Select a site</span>
+        <span class="sheet-iteration-badge" id="iterationBadge">Iteration 0</span>
+      </div>
+      <button class="sheet-close-btn" onclick="closeDesignSheet()" title="Close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <!-- Sheet Content — 3 Column Layout -->
+    <div class="sheet-content">
+      <!-- Column 1: AVA Chat -->
+      <div class="sheet-col sheet-col-chat">
+        <div class="ava-chat-panel">
+          <div class="ava-portrait-block">
+            <div class="ava-avatar-wrapper" onclick="handleAvaClick()" title="Click to hear AVA speak">
+              <img class="ava-portrait-img" src="baselines/ava-avatar.jpg" alt="AVA">
+              <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
+            </div>
+            <span class="ava-name">AVA</span>
+            <span class="ava-role">Adaptive Visualization Assistant</span>
+          </div>
+          <div class="ava-chat-messages" id="avaChatMessages">
+            <!-- Chat messages injected by JS -->
+          </div>
+          <!-- Mission Card (AVA's suggestions) -->
+          <div class="mission-card" id="missionCard" style="display:none">
+            <div class="mission-label">🎯 AVA's Suggestion</div>
+            <div class="mission-text" id="missionText"></div>
+            <button class="mission-btn" id="missionBtn">Apply Suggestion</button>
+          </div>
+          <div class="ava-chat-input">
+            <div id="refImagePreview" class="ref-image-preview" style="display:none">
+              <img id="refImageThumb" src="" alt="Reference">
+              <button class="ref-image-remove" onclick="removeRefImage()" title="Remove reference image">&times;</button>
+              <span class="ref-image-label">Reference image attached</span>
+            </div>
+            <div class="ava-input-row">
+              <button class="ava-ref-upload-btn" onclick="document.getElementById('refImageInput').click()" title="Attach a reference image for design inspiration">
+                <span class="material-symbols-outlined">attach_file</span>
+              </button>
+              <input type="file" id="refImageInput" accept="image/*" style="display:none" onchange="handleRefImageUpload(event)">
+              <textarea id="promptInput" placeholder="Describe a design element to add..." rows="2"></textarea>
+              <button class="ava-send-btn" id="btnVisualize" onclick="handleDesign()">
+                <span class="material-symbols-outlined">send</span>
+              </button>
+            </div>
+            <div class="ava-input-actions">
+              <button class="ava-auto-design-btn" onclick="handleDesign('make something beautiful')">
+                <span class="material-symbols-outlined">auto_awesome</span> AVA Auto-Design
+              </button>
+              <button class="ava-action-chip" onclick="handleDesign('boost')">🎯 Boost Weakest</button>
+              <button class="ava-action-chip" id="btnMic" onclick="toggleMic()">
+                <span class="material-symbols-outlined" style="font-size:16px">mic</span> Voice
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column 2: Canvas -->
+      <div class="sheet-col sheet-col-canvas">
+        <!-- Baseline View -->
+        <div class="canvas-viewport" id="baselineView">
+          <img id="baselineImg" src="" alt="Site Baseline">
+          <span class="canvas-label" id="baselineLabel">BASELINE</span>
+        </div>
+        <!-- Before/After Slider -->
+        <div class="canvas-viewport" id="beforeAfterView" style="display:none">
+          <img id="beforeImg" src="" alt="Before" class="ba-before">
+          <div class="ba-overlay" id="generatedOverlay">
+            <img id="afterImg" src="" alt="After">
+          </div>
+          <div class="ba-handle" id="sliderHandle">
+            <div class="ba-handle-knob">◀▶</div>
+          </div>
+          <span class="ba-label ba-label-before">BASELINE</span>
+          <span class="ba-label ba-label-after">DESIGNED</span>
+          <!-- Cost estimate badge overlay -->
+          <div class="cost-badge" id="costBadge" style="display:none" onclick="openCostModal()">
+            <span class="material-symbols-outlined">attach_money</span>
+            <div class="cost-badge-text">
+              <span class="cost-badge-label">EST. COST</span>
+              <span class="cost-badge-total" id="costBadgeTotal">—</span>
+            </div>
+            <span class="cost-badge-caret material-symbols-outlined">chevron_right</span>
+          </div>
+        </div>
+        <!-- Canvas Actions -->
+        <div class="canvas-actions" id="canvasActions" style="display:none">
+          <button onclick="undoDesign()" class="undo-btn" id="btnUndo" style="display:none"><span class="material-symbols-outlined">undo</span> Undo</button>
+          <button onclick="downloadPNG()"><span class="material-symbols-outlined">download</span> Download</button>
+          <button onclick="openSeasonalViews()" class="seasonal-btn" id="btnSeasonal" style="display:none"><span class="material-symbols-outlined">park</span> Seasonal Views</button>
+          <button onclick="openCostModal()" class="cost-btn" id="btnCostEstimate" style="display:none"><span class="material-symbols-outlined">request_quote</span> Cost Estimate</button>
+          <button onclick="resetDesign()"><span class="material-symbols-outlined">restart_alt</span> Reset</button>
+          <button onclick="saveToCloud()" class="save-community-btn"><span class="material-symbols-outlined">favorite</span> Save to Community</button>
+        </div>
+        <!-- Design History Timeline -->
+        <div class="history-timeline" id="historyTimeline" style="display:none"></div>
+      </div>
+
+      <!-- Column 3: Score Panel -->
+      <div class="sheet-col sheet-col-score">
+        <div class="score-ring-container">
+          <svg class="score-ring" viewBox="0 0 120 120">
+            <circle class="score-ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="score-ring-progress" id="scoreRingProgress" cx="60" cy="60" r="52"
+                    stroke-dasharray="326.73" stroke-dashoffset="326.73"></circle>
+          </svg>
+          <div class="score-ring-label">
+            <span class="score-ring-value" id="scoreValue">0</span>
+            <span class="score-ring-max">/200</span>
+          </div>
+        </div>
+        <div class="tier-badge" id="tierBadge">Pre-Certification</div>
+        <div class="tier-medal-container" id="tierMedalContainer"></div>
+        <!-- Section Scores -->
+        <div class="section-scores" id="sectionScores">
+          <!-- Populated by JS -->
+        </div>
+        <!-- Score Change Feedback -->
+        <div class="score-feedback" id="scoreFeedback" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============ MODALS ============ -->
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title"><span class="material-symbols-outlined">settings</span> Settings</span>
+        <button class="modal-close" onclick="closeModal('settingsModal')"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label>Cesium Ion Token <span style="background:#004684;color:#FDB927;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px">PHASE 2 — 3D EARTH</span></label>
+          <input type="password" id="settingCesiumToken" placeholder="eyJ…">
+          <small>Free token from <a href="https://ion.cesium.com/tokens" target="_blank">ion.cesium.com/tokens</a> — enables true 3D free-orbit campus view. Or set <strong>CESIUM_TOKEN</strong> in Netlify env vars.</small>
+        </div>
+        <div class="setting-group">
+          <label>Google Maps API Key</label>
+          <input type="password" id="settingGmapsKey" placeholder="AIza…">
+          <small>Enables Google Photorealistic 3D Tiles (buildings mesh) inside Cesium. Requires <strong>Map Tiles API</strong> enabled in Google Cloud Console. Or set <strong>GOOGLE_MAPS_KEY</strong> in Netlify env vars.</small>
+        </div>
+        <div class="setting-group">
+          <label>Gemini API Key</label>
+          <input type="password" id="settingGeminiKey" placeholder="Enter your Gemini API key">
+          <small>Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a></small>
+        </div>
+        <div class="setting-group">
+          <label>Firebase Config (JSON)</label>
+          <textarea id="settingFirebaseConfig" rows="4" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"..."}'></textarea>
+        </div>
+        <div class="setting-group">
+          <label>Gemini Model</label>
+          <select id="settingGeminiModel">
+            <option value="gemini-2.5-flash-image">gemini-2.5-flash (default)</option>
+            <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+          </select>
+        </div>
+        <button class="setting-save-btn" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seasonal Views Modal -->
+  <div class="modal-overlay" id="seasonalModal">
+    <div class="modal-card modal-lg" style="max-width:720px">
+      <div class="modal-header">
+        <span class="modal-title"><span class="material-symbols-outlined">park</span> Seasonal Views</span>
+        <button class="modal-close" onclick="closeModal('seasonalModal')"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="seasonal-grid" id="seasonalGrid">
+          <div class="seasonal-card" id="seasonSpring">
+            <div class="seasonal-loading"><div class="spinner"></div>Generating spring…</div>
+            <div class="seasonal-card-label">🌸 Spring <button onclick="downloadSeasonImg('spring')" title="Download"><span class="material-symbols-outlined">download</span></button></div>
+          </div>
+          <div class="seasonal-card" id="seasonSummer">
+            <div class="seasonal-loading"><div class="spinner"></div>Generating summer…</div>
+            <div class="seasonal-card-label">☀️ Summer <button onclick="downloadSeasonImg('summer')" title="Download"><span class="material-symbols-outlined">download</span></button></div>
+          </div>
+          <div class="seasonal-card" id="seasonFall">
+            <div class="seasonal-loading"><div class="spinner"></div>Generating fall…</div>
+            <div class="seasonal-card-label">🍂 Fall <button onclick="downloadSeasonImg('fall')" title="Download"><span class="material-symbols-outlined">download</span></button></div>
+          </div>
+          <div class="seasonal-card" id="seasonWinter">
+            <div class="seasonal-loading"><div class="spinner"></div>Generating winter…</div>
+            <div class="seasonal-card-label">❄️ Winter <button onclick="downloadSeasonImg('winter')" title="Download"><span class="material-symbols-outlined">download</span></button></div>
+          </div>
+        </div>
+        <div class="seasonal-download-bar">
+          <button onclick="downloadSeasonalComposite()"><span class="material-symbols-outlined">grid_view</span> Download All (2×2 Composite)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Community Modal -->
+  <div class="modal-overlay" id="communityModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <span class="modal-title"><span class="material-symbols-outlined">groups</span> Community Designs</span>
+        <div class="modal-header-actions">
+          <button class="modal-action-btn" onclick="AGGREGATE.open()" title="View Aggregate Analysis">
+            <span class="material-symbols-outlined">analytics</span> Analysis
+          </button>
+          <button class="modal-close" onclick="closeModal('communityModal')"><span class="material-symbols-outlined">close</span></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div id="galleryToolbar"></div>
+        <div class="hot-topics" id="hotTopics" style="display:none">
+          <div class="hot-topics-label">🔥 Hot Topics — Most Requested Design Elements</div>
+          <div class="hot-topics-cloud" id="hotTopicsCloud"></div>
+        </div>
+        <div class="community-grid" id="communityGrid">
+          <div class="community-empty">
+            <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3">landscape</span>
+            <p>No community designs yet. Be the first — design a space and click "Publish to Gallery"!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aggregate Analysis Modal -->
+  <div class="modal-overlay" id="aggregateModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <span class="modal-title"><span class="material-symbols-outlined">analytics</span> Community Design Analysis</span>
+        <button class="modal-close" onclick="closeModal('aggregateModal')"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="modal-body" id="aggregateContent">
+        <div class="community-empty">
+          <span class="material-symbols-outlined" style="font-size:48px;opacity:0.3">bar_chart</span>
+          <p>Loading aggregate analysis...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PPGIS Contribution Modal -->
+  <div class="modal-overlay" id="ppgisModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title"><span class="material-symbols-outlined">add_location_alt</span> Community Contribution</span>
+        <button class="modal-close" onclick="closeModal('ppgisModal')"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-group">
+          <label>What did you observe?</label>
+          <select id="ppgisType">
+            <option value="comment">💬 Comment / Idea</option>
+            <option value="concern">⚠️ Concern / Issue</option>
+            <option value="photo">📸 Photo Documentation</option>
+            <option value="design">🎨 Design Proposal</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <label>Category</label>
+          <div class="ppgis-tags" id="ppgisTags">
+            <button class="ppgis-tag" data-tag="flooding" onclick="togglePPGISTag(this)">💧 Flooding</button>
+            <button class="ppgis-tag" data-tag="accessibility" onclick="togglePPGISTag(this)">♿ Accessibility</button>
+            <button class="ppgis-tag" data-tag="vegetation" onclick="togglePPGISTag(this)">🌿 Vegetation</button>
+            <button class="ppgis-tag" data-tag="lighting" onclick="togglePPGISTag(this)">💡 Lighting</button>
+            <button class="ppgis-tag" data-tag="safety" onclick="togglePPGISTag(this)">🛡️ Safety</button>
+            <button class="ppgis-tag" data-tag="erosion" onclick="togglePPGISTag(this)">🪨 Erosion</button>
+          </div>
+        </div>
+        <div class="setting-group">
+          <label>Description</label>
+          <textarea id="ppgisContent" rows="3" placeholder="Describe what you see or propose..."></textarea>
+        </div>
+        <div class="setting-group">
+          <label>Photo (optional)</label>
+          <input type="file" id="ppgisPhoto" accept="image/*" capture="environment">
+        </div>
+        <div class="setting-group">
+          <label>Location</label>
+          <div class="ppgis-gps" id="ppgisGPS">Select a site on the 3D canvas to set location</div>
+        </div>
+        <button class="setting-save-btn" onclick="submitPPGIS()">Submit Contribution</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Site Info Card Modal -->
+  <div class="modal-overlay" id="siteCardModal">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <span class="modal-title"><span class="material-symbols-outlined">landscape</span> <span id="siteCardName">Site</span></span>
+        <button class="modal-close" onclick="closeModal('siteCardModal')"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="site-card-hero">
+          <img id="siteCardImg" src="" alt="Site Photo">
+        </div>
+        <div class="site-card-college" id="siteCardCollege"></div>
+        <p class="site-card-desc" id="siteCardDesc"></p>
+        <div class="site-card-video" id="siteCardVideo" style="display:none">
+          <video id="siteCardVideoPlayer" controls playsinline style="width:100%;border-radius:8px;margin-top:8px"></video>
+        </div>
+        <div class="site-card-team" id="siteCardTeam" style="display:none;margin-top:12px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-secondary);margin-bottom:6px">Project Team</div>
+          <div id="siteCardTeamList" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+        <div class="site-card-stats" id="siteCardStats"></div>
+        <button class="setting-save-btn" id="siteCardDesignBtn" style="margin-top:16px">
+          <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle">brush</span>
+          Start Design with AVA
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Project Manager Modal -->
+  <div class="modal-overlay" id="adminProjectModal">
+    <div class="modal-card modal-xl">
+      <div class="modal-header">
+        <span class="modal-title"><span class="material-symbols-outlined">shield_person</span> Manage Projects</span>
+        <button class="modal-close" onclick="ADMIN.closeProjectForm();closeModal('adminProjectModal')"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="modal-body admin-modal-body">
+        <div class="admin-project-list-section">
+          <div class="admin-section-header">
+            <h3>Existing Projects</h3>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="admin-new-btn" onclick="ADMIN.openProjectForm()"><span class="material-symbols-outlined">add_circle</span> New Project</button>
+              <button class="admin-new-btn" style="background:var(--caes-green)" onclick="document.getElementById('adminJsonImport').click()"><span class="material-symbols-outlined">upload_file</span> Import JSON</button>
+              <input type="file" id="adminJsonImport" accept=".json,application/json" style="display:none" onchange="ADMIN.importJSON(this)">
+            </div>
+          </div>
+          <div id="adminProjectList"></div>
+        </div>
+        <form id="adminProjectForm" class="admin-form" onsubmit="event.preventDefault();ADMIN.saveProject()">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 class="admin-form-title" style="margin:0">Project Details</h3>
+            <button type="button" class="admin-new-btn" style="background:#6366f1;font-size:12px;padding:6px 12px" onclick="ADMIN.exportJSON()"><span class="material-symbols-outlined" style="font-size:16px">download</span> Export JSON</button>
+          </div>
+          <fieldset class="admin-fieldset">
+            <legend><span class="material-symbols-outlined">badge</span> Identity</legend>
+            <div class="admin-row">
+              <div class="admin-field"><label>Project ID (slug)</label><input type="text" id="adminProjectId" placeholder="e.g. east-quad" required></div>
+              <div class="admin-field"><label>Full Name</label><input type="text" id="adminProjectName" placeholder="e.g. East Quad Green" required></div>
+            </div>
+            <div class="admin-row">
+              <div class="admin-field"><label>Short Name</label><input type="text" id="adminProjectShortName" placeholder="e.g. East Quad"></div>
+              <div class="admin-field"><label>College / Department</label><input type="text" id="adminProjectCollege" placeholder="e.g. College of Engineering"></div>
+            </div>
+            <div class="admin-field"><label>Slogan</label><input type="text" id="adminProjectSlogan" placeholder="e.g. Digital Twin for East Quad"></div>
+          </fieldset>
+          <fieldset class="admin-fieldset">
+            <legend><span class="material-symbols-outlined">location_on</span> Location</legend>
+            <div class="admin-row">
+              <div class="admin-field"><label>Latitude</label><input type="number" id="adminProjectLat" step="0.000001" placeholder="36.0726"></div>
+              <div class="admin-field"><label>Longitude</label><input type="number" id="adminProjectLng" step="0.000001" placeholder="-79.7749"></div>
+            </div>
+            <div class="admin-row">
+              <div class="admin-field"><label>Pin R</label><input type="number" id="adminPinR" min="0" max="255" value="100"></div>
+              <div class="admin-field"><label>Pin G</label><input type="number" id="adminPinG" min="0" max="255" value="100"></div>
+              <div class="admin-field"><label>Pin B</label><input type="number" id="adminPinB" min="0" max="255" value="100"></div>
+            </div>
+          </fieldset>
+          <fieldset class="admin-fieldset">
+            <legend><span class="material-symbols-outlined">straighten</span> Site Metrics</legend>
+            <div class="admin-row">
+              <div class="admin-field"><label>Area (acres)</label><input type="number" id="adminProjectArea" step="0.01" placeholder="1.5"></div>
+              <div class="admin-field"><label>Elevation Drop (ft)</label><input type="number" id="adminProjectElevation" placeholder="18"></div>
+            </div>
+            <div class="admin-row">
+              <div class="admin-field"><label>Soil Type</label><input type="text" id="adminProjectSoil" placeholder="Piedmont Clay"></div>
+              <div class="admin-field"><label>Budget ($)</label><input type="number" id="adminProjectBudget" placeholder="140000"></div>
+            </div>
+            <div class="admin-field"><label>Baseline SITES Score (0-200)</label><input type="number" id="adminProjectBaseline" min="0" max="200" placeholder="23"></div>
+          </fieldset>
+          <fieldset class="admin-fieldset">
+            <legend><span class="material-symbols-outlined">image</span> Media</legend>
+            <div class="admin-field">
+              <label>Baseline / Hero Photo</label>
+              <input type="file" id="adminBaselineFile" accept="image/*" onchange="ADMIN.handleBaselineUpload(this)">
+              <img id="adminBaselinePreview" class="admin-upload-preview" style="display:none" alt="Preview">
+            </div>
+            <div class="admin-field">
+              <label>Video Overview (upload or URL)</label>
+              <input type="file" id="adminVideoFile" accept="video/*">
+              <input type="text" id="adminVideoUrl" placeholder="Or paste URL: https://...">
+            </div>
+          </fieldset>
+          <fieldset class="admin-fieldset">
+            <legend><span class="material-symbols-outlined">history_edu</span> Site History</legend>
+            <div class="admin-field"><label>History Title</label><input type="text" id="adminHistoryTitle" placeholder="The Story of East Quad"></div>
+            <div class="admin-field"><label>History Summary</label><textarea id="adminHistorySummary" rows="3" placeholder="Narrative about the site's history and significance..."></textarea></div>
+          </fieldset>
+          <fieldset class="admin-fieldset">
+            <legend><span class="material-symbols-outlined">landscape</span> Site Context (for AVA AI)</legend>
+            <div class="admin-field"><label>Detailed Description of Existing Conditions</label><textarea id="adminSiteContext" rows="5" placeholder="Describe existing buildings, vegetation, hardscape, soil conditions, canopy, existing features, priorities for intervention..."></textarea></div>
+            <div class="admin-field"><label>Popup Description (short)</label><input type="text" id="adminPopupDesc" placeholder="Brief description for map popup"></div>
+          </fieldset>
+          <fieldset class="admin-fieldset">
+            <legend><span class="material-symbols-outlined">flag</span> Project Goals (Design Steering)</legend>
+            <div class="admin-field"><label>Focus Theme</label><input type="text" id="adminGoalsFocus" placeholder="e.g. engineering-ecology-showcase"></div>
+            <div class="admin-field"><label>Character Statement</label><textarea id="adminGoalsCharacter" rows="2" placeholder="e.g. Patrick Blanc-inspired — engineering meets ecology..."></textarea></div>
+            <div class="admin-field">
+              <label>Priorities (AVA will emphasize these)</label>
+              <div class="admin-tag-input-row">
+                <input type="text" id="adminPrioritizeInput" placeholder="Type and press Add...">
+                <button type="button" onclick="ADMIN.addTag('adminPrioritizeInput','adminPrioritizeList')">Add</button>
+              </div>
+              <div class="admin-tag-list" id="adminPrioritizeList"></div>
+            </div>
+            <div class="admin-field">
+              <label>Avoid List (AVA will NOT use these)</label>
+              <div class="admin-tag-input-row">
+                <input type="text" id="adminAvoidInput" placeholder="Type and press Add...">
+                <button type="button" onclick="ADMIN.addTag('adminAvoidInput','adminAvoidList')">Add</button>
+              </div>
+              <div class="admin-tag-list" id="adminAvoidList"></div>
+            </div>
+          </fieldset>
+          <fieldset class="admin-fieldset">
+            <legend><span class="material-symbols-outlined">group</span> Project Team</legend>
+            <div id="adminTeamList"></div>
+            <button type="button" class="admin-add-team-btn" onclick="ADMIN.addTeamRow()"><span class="material-symbols-outlined">person_add</span> Add Team Member</button>
+          </fieldset>
+          <div class="admin-form-actions">
+            <button type="button" class="admin-cancel-btn" onclick="ADMIN.closeProjectForm()">Cancel</button>
+            <button type="submit" class="admin-save-btn"><span class="material-symbols-outlined">save</span> Save Project</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cost Estimate Modal -->
+  <div class="modal-overlay" id="costModal">
+    <div class="modal-card modal-lg cost-modal-card">
+      <div class="modal-header">
+        <span class="modal-title"><span class="material-symbols-outlined">request_quote</span> Project Cost Estimate</span>
+        <button class="modal-close" onclick="closeModal('costModal')"><span class="material-symbols-outlined">close</span></button>
+      </div>
+      <div class="modal-body" id="costModalBody">
+        <!-- Populated by JS -->
+      </div>
+      <div class="modal-footer cost-modal-footer">
+        <span class="cost-disclaimer">Estimates based on 2024 Mid-Atlantic/SE US unit costs. Quantities derived from site area &amp; design keywords. Engage a licensed landscape architect for project budgeting.</span>
+        <button class="cost-csv-btn" onclick="downloadCostCSV()"><span class="material-symbols-outlined">download</span> Download CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts — Load order: configs → geo → community → modules → app (orchestrator) -->
+  <script src="js/site-configs.js"></script>
+  <script src="geo.js"></script>
+  <script src="community.js"></script>
+  <script src="tts.js"></script>
+  <script src="js/design-engine.js"></script>
+  <script src="js/cost-engine.js"></script>
+  <script src="js/gallery-panel.js"></script>
+  <script src="js/aggregate-engine.js"></script>
+  <script src="js/admin-panel.js"></script>
+  <script src="app.js"></script>
+  <script src="cre-publish.js"></script>
+
+  <!-- Legal Footer -->
+  <div class="think-footer">© 2026 Think! Design and Planning, LLC. All Rights Reserved. &nbsp;·&nbsp; AVA is a proprietary product of Think! Design and Planning, LLC.</div>
+
+</body>
+</html>
