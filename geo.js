@@ -181,6 +181,8 @@ window.GEO = (() => {
     _cemAddClickHandler();
     _cemAddHUD();
 
+    if (window.GEO_LAYERS) GEO_LAYERS.init(_cemViewer, mapsKey);
+
     // Refine marker positions to actual tile surface once initial tiles stream in
     setTimeout(_cemClampMarkersToSurface, 3500);
 

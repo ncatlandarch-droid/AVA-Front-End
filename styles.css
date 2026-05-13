@@ -1676,3 +1676,176 @@ body.workspace-active .projects-gallery-view { display: none !important; }
 .canvas-hud button {
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   GIS Layer Panel
+   ========================================================================== */
+.ava-layer-panel {
+  position: absolute;
+  top: 56px;
+  right: 12px;
+  width: 200px;
+  background: rgba(0,0,0,0.88);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 10px 0 8px;
+  z-index: 900;
+  font-family: var(--font-ui);
+  backdrop-filter: blur(8px);
+}
+.ava-layer-panel h4 {
+  margin: 0 0 8px;
+  padding: 0 12px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ava-gold);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.layer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+  gap: 8px;
+}
+.layer-row:hover {
+  background: rgba(255,255,255,0.04);
+}
+.layer-row label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+  flex: 1;
+  user-select: none;
+}
+.layer-toggle-btn {
+  width: 34px;
+  height: 18px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 9px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.layer-toggle-btn::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 50%;
+  transition: left 0.2s, background 0.2s;
+}
+.layer-toggle-btn.active {
+  background: var(--ava-gold);
+  border-color: var(--ava-gold);
+}
+.layer-toggle-btn.active::after {
+  left: 18px;
+  background: #000;
+}
+
+/* ==========================================================================
+   Parcel Info Card
+   ========================================================================== */
+.ava-parcel-card {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 260px;
+  max-width: 320px;
+  background: rgba(0,0,0,0.92);
+  border: 1px solid rgba(253,185,39,0.4);
+  border-radius: 10px;
+  padding: 14px 16px 12px;
+  z-index: 910;
+  font-family: var(--font-ui);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+.pcard-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+.pcard-close:hover { color: #fff; }
+.pcard-pin {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ava-gold);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.pcard-owner {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pcard-address {
+  font-size: 11px;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 8px;
+}
+.pcard-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 10px;
+}
+.pcard-meta span {
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.pcard-soils {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 10px;
+  font-style: italic;
+}
+.pcard-actions {
+  display: flex;
+  gap: 8px;
+}
+.pcard-btn {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: opacity 0.15s;
+}
+.pcard-btn:hover { opacity: 0.85; }
+.pcard-btn-create {
+  background: var(--ava-gold);
+  color: #000;
+}
+.pcard-btn-design {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
