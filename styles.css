@@ -53,7 +53,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
   100% { background-position: 0% 50%; }
 }
 .top-bar-ava-logo {
-  height: 50px; width: auto; object-fit: contain;
+  height: 64px; width: auto; object-fit: contain;
   filter: drop-shadow(0 1px 4px rgba(0,0,0,0.5));
 }
 /* Think! footer */
