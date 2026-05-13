@@ -225,15 +225,13 @@ window.GEO = (() => {
       const entity = _cemViewer.entities.add({
         id:       site.id,
         name:     site.name,
-        // Start at campus altitude so markers are visible while tiles stream in.
-        // _cemClampMarkersToSurface() refines to the exact tile surface after load.
         position: Cesium.Cartesian3.fromDegrees(site.lng, site.lat, CAMPUS_ALT),
         billboard: {
           image:                        _pinSVG(hex),
           width:                        40,
           height:                       50,
           verticalOrigin:               Cesium.VerticalOrigin.BOTTOM,
-          heightReference:              Cesium.HeightReference.NONE,
+          heightReference:              Cesium.HeightReference.CLAMP_TO_3D_TILE,
           disableDepthTestDistance:     Number.POSITIVE_INFINITY
         }
       });
@@ -241,25 +239,33 @@ window.GEO = (() => {
     });
   }
 
-  async function _cemClampMarkersToSurface() {
+  async function _cemClampMarkersToSurface(attempt = 0) {
     if (!_cemViewer || typeof SITE_CONFIGS === 'undefined') return;
     if (!_cemViewer.scene.clampToHeightSupported) return;
     const sites = Object.values(SITE_CONFIGS).filter(s => s.lat && s.lng && _cemEntities[s.id]);
     if (!sites.length) return;
 
-    // Cast from well above campus so the ray hits the tile surface, not underground
     const cartesians = sites.map(s =>
       Cesium.Cartesian3.fromDegrees(s.lng, s.lat, CAMPUS_ALT + 300)
     );
     try {
       const clamped = await _cemViewer.scene.clampToHeightMostDetailed(cartesians);
+      let missed = 0;
       clamped.forEach((c, i) => {
         if (Cesium.defined(c)) {
           const entity = _cemEntities[sites[i].id];
           if (entity) entity.position = c;
+        } else {
+          missed++;
         }
       });
-    } catch (_) {}
+      // Retry with backoff until all markers clamped (tiles may still be streaming)
+      if (missed > 0 && attempt < 6) {
+        setTimeout(() => _cemClampMarkersToSurface(attempt + 1), 4000 * (attempt + 1));
+      }
+    } catch (_) {
+      if (attempt < 6) setTimeout(() => _cemClampMarkersToSurface(attempt + 1), 4000 * (attempt + 1));
+    }
   }
 
   function _cemAddClickHandler() {
@@ -808,7 +814,7 @@ window.GEO = (() => {
           width:                    40,
           height:                   50,
           verticalOrigin:           Cesium.VerticalOrigin.BOTTOM,
-          heightReference:          Cesium.HeightReference.NONE,
+          heightReference:          Cesium.HeightReference.CLAMP_TO_3D_TILE,
           disableDepthTestDistance: Number.POSITIVE_INFINITY
         }
       });

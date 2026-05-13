@@ -178,12 +178,12 @@ window.GEO_LAYERS = (() => {
     const p = entity.properties;
     _selectedParcel = {
       entity,
-      id:       _prop(p, 'PARCEL_ID','PIN','parcel_id','pin','PARID','APN'),
-      owner:    _prop(p, 'OWNER','OWNER1','OWNERNM','owner'),
-      address:  _prop(p, 'SITE_ADDR','SITE_ADDRESS','SITEADDRESS','address'),
-      acres:    _prop(p, 'TOTAL_ACRES','ACRES','GISACRES','CALCACRES','acres'),
-      landUse:  _prop(p, 'LAND_USE','LANDUSE','PROP_USE','propuse'),
-      zone:     _prop(p, 'ZONING','ZONE_CODE','ZONECODE','zoning'),
+      id:       _prop(p, 'PARCEL_ID','PIN','PARID','APN','parcel_id','pin','PARCELNUMB','Parcel_ID'),
+      owner:    _prop(p, 'OWNER_NAME','OWNER','OWNER1','OWNERNM','OWN_NAME','owner','GRANTEE'),
+      address:  _prop(p, 'SITUS_ADDRESS','SITE_ADDR','SITE_ADDRESS','SITEADDRESS','ADDR','address','PROP_ADDR'),
+      acres:    _prop(p, 'ACREAGE','TOTAL_ACRES','ACRES','GISACRES','CALCACRES','GIS_ACRES','Shape_Area','acres'),
+      landUse:  _prop(p, 'LAND_USE_CD','LAND_USE','LANDUSE','PROP_USE','LU_CODE','propuse'),
+      zone:     _prop(p, 'ZONING','ZONING_CODE','ZONE_CODE','ZONECODE','ZONE_CLASS','zoning'),
       soilName: null,
       hydroGrp: null,
     };
@@ -191,35 +191,26 @@ window.GEO_LAYERS = (() => {
     const card = document.getElementById('ava-parcel-card');
     if (!card) return;
 
-    const acres = _selectedParcel.acres ? (+_selectedParcel.acres).toFixed(2) : '—';
+    const acres = _selectedParcel.acres ? (+_selectedParcel.acres).toFixed(2) : null;
     card.innerHTML = `
-      <div class="pcard-hdr">
-        <span class="pcard-title">
-          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">texture</span>
-          PARCEL
-        </span>
-        <button onclick="document.getElementById('ava-parcel-card').style.display='none'"
-                style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;padding:0">
-          <span class="material-symbols-outlined" style="font-size:16px">close</span>
-        </button>
+      <button class="pcard-close" onclick="document.getElementById('ava-parcel-card').style.display='none'">
+        <span class="material-symbols-outlined" style="font-size:16px;font-weight:400">close</span>
+      </button>
+      ${_selectedParcel.id      ? `<div class="pcard-pin">PIN: ${_selectedParcel.id}</div>` : ''}
+      ${_selectedParcel.owner   ? `<div class="pcard-owner">${_selectedParcel.owner}</div>` : ''}
+      ${_selectedParcel.address ? `<div class="pcard-address">${_selectedParcel.address}</div>` : ''}
+      <div class="pcard-meta">
+        ${acres              ? `<span>${acres} ac</span>` : ''}
+        ${_selectedParcel.zone     ? `<span>${_selectedParcel.zone}</span>` : ''}
+        ${_selectedParcel.landUse  ? `<span>${_selectedParcel.landUse}</span>` : ''}
       </div>
-      <div class="pcard-body">
-        ${_prow('PIN',        _selectedParcel.id)}
-        ${_prow('Owner',      _selectedParcel.owner)}
-        ${_prow('Address',    _selectedParcel.address)}
-        ${_prow('Acres',      acres)}
-        ${_prow('Land Use',   _selectedParcel.landUse)}
-        ${_prow('Zone',       _selectedParcel.zone)}
-        <div id="pcard-soil-row" style="display:none">${_prow('Soil','<span id="pcard-soil-val">…</span>')}</div>
-      </div>
+      <div class="pcard-soils" id="pcard-soil-line" style="display:none"></div>
       <div class="pcard-actions">
-        <button class="pcard-btn pcard-btn-primary" onclick="GEO_LAYERS.createProjectFromParcel()">
-          <span class="material-symbols-outlined" style="font-size:14px">add_circle</span>
-          Create AVA Project
+        <button class="pcard-btn pcard-btn-create" onclick="GEO_LAYERS.createProjectFromParcel()">
+          + Create Project
         </button>
-        <button class="pcard-btn" onclick="GEO_LAYERS.captureForDesign()">
-          <span class="material-symbols-outlined" style="font-size:14px">photo_camera</span>
-          Design in Plan View
+        <button class="pcard-btn pcard-btn-design" onclick="GEO_LAYERS.captureForDesign()">
+          Plan View
         </button>
       </div>`;
     card.style.display = 'block';
@@ -249,11 +240,10 @@ window.GEO_LAYERS = (() => {
       const name  = f.MUNAME || f.muname || f.musym || '';
       const hydro = f.hydgrpdcd || f.HYDGRP || '';
       if (_selectedParcel) { _selectedParcel.soilName = name; _selectedParcel.hydroGrp = hydro; }
-      const row = document.getElementById('pcard-soil-row');
-      const val = document.getElementById('pcard-soil-val');
-      if (row && val && name) {
-        val.textContent = name + (hydro ? `  ·  Hydro ${hydro}` : '');
-        row.style.display = '';
+      const line = document.getElementById('pcard-soil-line');
+      if (line && name) {
+        line.textContent = name + (hydro ? `  ·  Hydro Grp ${hydro}` : '');
+        line.style.display = '';
       }
     } catch (_) {}
   }
@@ -347,8 +337,7 @@ window.GEO_LAYERS = (() => {
     panel.style.display = 'none';
     canvas.appendChild(panel);
 
-    const hdr = document.createElement('div');
-    hdr.className   = 'layer-panel-hdr';
+    const hdr = document.createElement('h4');
     hdr.textContent = 'DATA LAYERS';
     panel.appendChild(hdr);
 
@@ -357,15 +346,14 @@ window.GEO_LAYERS = (() => {
       row.className = 'layer-row';
       row.id        = `layer-row-${def.id}`;
       row.innerHTML = `
-        <div class="layer-row-info">
-          <span class="layer-dot" id="layer-dot-${def.id}" style="background:${def.accent};opacity:0.3"></span>
-          <span class="material-symbols-outlined layer-icon">${def.icon}</span>
-          <span class="layer-row-label">${def.label}</span>
-        </div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"
+               onclick="GEO_LAYERS.toggle('${def.id}')">
+          <span style="font-family:'Material Symbols Outlined';font-size:14px;
+                       color:${def.accent};opacity:0.8;font-weight:400">${def.icon}</span>
+          ${def.label}
+        </label>
         <button class="layer-toggle-btn" id="layer-tb-${def.id}"
                 onclick="GEO_LAYERS.toggle('${def.id}')" title="Toggle ${def.label}">
-          <span id="layer-spinner-${def.id}" class="layer-spinner" style="display:none">⟳</span>
-          <span id="layer-state-${def.id}">OFF</span>
         </button>`;
       panel.appendChild(row);
     });
@@ -389,31 +377,12 @@ window.GEO_LAYERS = (() => {
   }
 
   function _refreshRow(layerId) {
-    const st   = _st[layerId];
-    const tb   = document.getElementById(`layer-tb-${layerId}`);
-    const dot  = document.getElementById(`layer-dot-${layerId}`);
-    const spin = document.getElementById(`layer-spinner-${layerId}`);
-    const lbl  = document.getElementById(`layer-state-${layerId}`);
+    const st = _st[layerId];
+    const tb = document.getElementById(`layer-tb-${layerId}`);
     if (!tb) return;
-    if (st.loading) {
-      spin && (spin.style.display = 'inline');
-      lbl  && (lbl.textContent = '…');
-      tb.style.opacity = '0.6';
-    } else {
-      spin && (spin.style.display = 'none');
-      if (st.active) {
-        lbl  && (lbl.textContent = 'ON');
-        tb.style.background = 'rgba(253,185,39,0.85)';
-        tb.style.color      = '#000';
-        dot  && (dot.style.opacity = '1');
-      } else {
-        lbl  && (lbl.textContent = 'OFF');
-        tb.style.background = 'rgba(255,255,255,0.08)';
-        tb.style.color      = 'rgba(255,255,255,0.7)';
-        dot  && (dot.style.opacity = '0.3');
-      }
-      tb.style.opacity = '1';
-    }
+    tb.style.opacity = st.loading ? '0.5' : '1';
+    tb.classList.toggle('active', !!st.active);
+    tb.title = st.loading ? 'Loading…' : (st.active ? 'ON — click to hide' : 'OFF — click to show');
   }
 
   function _hudBtn(icon, label, onClick) {
@@ -437,14 +406,24 @@ window.GEO_LAYERS = (() => {
 
   function _viewportBbox() {
     if (!_viewer) return null;
-    const rect = _viewer.camera.computeViewRectangle();
-    if (!Cesium.defined(rect)) return null;
-    return {
-      west:  Cesium.Math.toDegrees(rect.west),
-      south: Cesium.Math.toDegrees(rect.south),
-      east:  Cesium.Math.toDegrees(rect.east),
-      north: Cesium.Math.toDegrees(rect.north),
-    };
+    try {
+      const rect = _viewer.camera.computeViewRectangle();
+      if (Cesium.defined(rect)) {
+        return {
+          west:  Cesium.Math.toDegrees(rect.west),
+          south: Cesium.Math.toDegrees(rect.south),
+          east:  Cesium.Math.toDegrees(rect.east),
+          north: Cesium.Math.toDegrees(rect.north),
+        };
+      }
+    } catch (_) {}
+    // Fallback for top-down or near-vertical camera: fixed 0.05° box around camera footprint
+    const carto = Cesium.Cartographic.fromCartesian(_viewer.camera.position);
+    if (!Cesium.defined(carto)) return null;
+    const lat = Cesium.Math.toDegrees(carto.latitude);
+    const lng = Cesium.Math.toDegrees(carto.longitude);
+    const d = 0.04;
+    return { west: lng - d, south: lat - d, east: lng + d, north: lat + d };
   }
 
   function _prop(bag, ...keys) {

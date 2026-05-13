@@ -69,8 +69,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
 }
 .top-bar-left { display: flex; align-items: center; gap: 14px; }
 .top-bar-brand h1 { font-size: 32px; font-weight: 700; letter-spacing: 0.3px; line-height: 1.2; color: #fff; }
-.top-bar-brand .ava-a { color: #ffffff; }
-.top-bar-brand .ava-v { color: #e020e0; font-weight: 800; }
+
 .top-bar-subtitle { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.7); }
 .top-bar-right { display: flex; align-items: center; gap: 6px; }
 .top-btn {
@@ -79,7 +78,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
   background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
   color: rgba(255,255,255,0.85); cursor: pointer; transition: all 0.2s;
 }
-.top-btn:hover { background: rgba(253,185,39,0.2); color: #fff; border-color: rgba(253,185,39,0.4); }
+.top-btn:hover { background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.35); }
 .top-btn.active { background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.4); }
 .top-btn .material-symbols-outlined { font-size: 20px; }
 /* ===== VIEW TOGGLE TABS ===== */
@@ -100,7 +99,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
 .view-toggle-btn .material-symbols-outlined { font-size: 18px; }
 .view-toggle-btn:hover { background: rgba(17,17,17,0.06); color: var(--think-black); }
 .view-toggle-btn.active {
-  background: var(--think-black); color: #fff; box-shadow: 0 2px 8px rgba(17,17,17,0.25);
+  background: #003087; color: #fff; box-shadow: 0 2px 8px rgba(0,48,135,0.30);
 }
 
 /* ===== PROJECTS GALLERY (Full Viewport) ===== */
@@ -1498,11 +1497,11 @@ body.workspace-active #campusMapContainer { visibility: hidden; }
 }
 .sites-scoreboard-pill { cursor: pointer; }
 .sites-scoreboard-pill:hover { background: rgba(255,255,255,0.18); }
-.sites-scoreboard-pill .material-symbols-outlined { font-size: 18px; color: #39ff14; }
+.sites-scoreboard-pill .material-symbols-outlined { font-size: 18px; color: rgba(255,255,255,0.9); }
 .scoreboard-label { font-size: 13px; font-weight: 700; letter-spacing: 0.3px; }
 .scoreboard-divider { opacity: 0.4; font-size: 13px; }
 .scoreboard-stats { font-size: 12px; color: rgba(255,255,255,0.8); }
-.scoreboard-stats strong { color: #39ff14; font-weight: 800; }
+.scoreboard-stats strong { color: #fff; font-weight: 800; }
 
 /* ── Main App Workspace (Left Sidebar + 3D Canvas) ── */
 .app-workspace {
@@ -1839,7 +1838,8 @@ body.workspace-active .projects-gallery-view { display: none !important; }
   transition: opacity 0.15s;
 }
 .pcard-btn:hover { opacity: 0.85; }
-.pcard-btn-create {
+.pcard-btn-create,
+.pcard-btn-primary {
   background: var(--ava-gold);
   color: #000;
 }
