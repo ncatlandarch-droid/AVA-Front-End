@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* Future: render PPGIS contributions on map */
   });
 
-  addChatMessage('ava', "Welcome to <strong>AVA V.4</strong>! I'm your Aggie Visualization Assistant. Switch to <strong>Projects</strong> to browse all campus sites and start designing.", true);
+  addChatMessage('ava', "Welcome to <strong>AVA V.4</strong>! I'm your Adaptive Visualization Assistant. Switch to <strong>Projects</strong> to browse project sites or ask me anything about the map.", true);
   initBeforeAfterSlider();
   initThreeCanvas();
   updateScoreboard();
@@ -873,7 +873,7 @@ function handleAvaClick() {
       : ` Your current SITES score is ${state.currentScore} points.`;
     speakAVA(`I'm working on ${site.name} with you.${tierMsg} Describe a design element to add, or let me auto-design something beautiful!`);
   } else {
-    speakAVA("Hi! I'm Ava, your Aggie Visualization Assistant. I can help you design sustainable landscapes for NC A and T. Tap a project pin on the map, or switch to Projects to get started!");
+    speakAVA("Hi! I'm AVA, your Adaptive Visualization Assistant. I can help you explore sites, analyze GIS data, and design sustainable landscapes. Tap a project pin on the map, or switch to Projects to get started!");
   }
 }
 
@@ -906,7 +906,7 @@ async function handleMapChat() {
     `Baseline score: ${s.baselineScore}/200. Sections: ${(s.sections||[]).map(sec => sec.name).join(', ')}.`
   ).join('\n');
 
-  const systemPrompt = `You are AVA (Aggie Visualization Assistant), an AI landscape architecture assistant at NC A&T State University. You help students design sustainable landscapes using the SITES v2 rating system (250 points across 10 sections). You manage these campus sites:\n${siteContext}\n\nIMPORTANT RULES:\n- Be warm, encouraging, and educational\n- Reference specific site data when relevant\n- Keep responses concise (2-3 sentences)\n- Suggest switching to Projects tab or clicking a map pin to start designing\n- If asked about SITES v2, explain the sustainability scoring system briefly`;
+  const systemPrompt = `You are AVA (Adaptive Visualization Assistant), an AI landscape architecture and GIS assistant built by Think! Design and Planning, LLC. You help users explore sites, analyze spatial data (parcels, soils, zoning, contours), and design sustainable landscapes using the SITES v2 rating system. You manage these project sites:\n${siteContext}\n\nMAP COMMANDS — embed these tokens in your response when the user's request involves map actions:\n- Toggle a GIS layer on/off: [CMD:toggle_layer:parcels] [CMD:toggle_layer:soils] [CMD:toggle_layer:zoning] [CMD:toggle_layer:contours] [CMD:toggle_layer:roads]\n- Navigate to an address: [CMD:fly_to:123 Main St, Greensboro NC]\n- Focus a project site: [CMD:focus_site:site-id]\n- Reset to overview: [CMD:reset_view]\n- Zoom in/out: [CMD:zoom_in] [CMD:zoom_out]\nEmbed the command token naturally in your sentence and it will be executed automatically.\n\nIMPORTANT RULES:\n- Be warm, concise, and professional\n- Reference specific site data when relevant\n- Keep responses to 2-3 sentences\n- If asked to show a layer, include the appropriate [CMD:toggle_layer:X] token\n- If asked to go somewhere, include [CMD:fly_to:address] with the full address\n- If asked about SITES v2, explain the sustainability scoring system briefly`;
 
   try {
     // Use the user's configured model for text chat, with fallback chain
@@ -933,8 +933,9 @@ async function handleMapChat() {
       } catch (e) { continue; }
     }
     if (!response) response = 'I couldn\'t process that — try rephrasing your question!';
-    typingMsg.innerHTML = response;
-    speakAVA(response);
+    const clean = window.AVA_COMMANDS ? AVA_COMMANDS.execute(response) : response;
+    typingMsg.innerHTML = clean;
+    speakAVA(clean);
   } catch (err) {
     // Fallback to smart static response
     const siteNames = sites.map(s => s.name).join(', ');
@@ -1002,7 +1003,7 @@ function _legacyRenderCommunityGallery(designs) {
       <img src="${d.imageUrl}" alt="Design" loading="lazy" onerror="this.style.display='none'">
       <div class="community-card-info">
         <div class="community-card-header">
-          <span class="community-card-author">${escapeHTML(d.authorName || 'Aggie Designer')}</span>
+          <span class="community-card-author">${escapeHTML(d.authorName || 'AVA Designer')}</span>
           <span class="community-card-site">${escapeHTML(siteName)}</span>
         </div>
         <div class="community-card-score">${tierEmoji} ${d.tier || ''} Â· ${d.sitesScore || 0}/200 pts</div>

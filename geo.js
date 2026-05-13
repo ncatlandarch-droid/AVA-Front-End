@@ -183,16 +183,29 @@ window.GEO = (() => {
 
     if (window.GEO_LAYERS) GEO_LAYERS.init(_cemViewer, mapsKey);
 
-    // Initial clamp — runs after first tile batch streams in
-    setTimeout(_cemClampMarkersToSurface, 3500);
-
-    // Re-clamp after every camera move so markers stay on tile surface as
-    // new high-detail tiles stream in when zooming to a project site
-    let _clampTimer = null;
-    _cemViewer.camera.changed.addEventListener(() => {
-      clearTimeout(_clampTimer);
-      _clampTimer = setTimeout(_cemClampMarkersToSurface, 1200);
+    // AVA command bridge — fly to geocoded location
+    document.addEventListener('ava:flyToLatLng', ({ detail }) => {
+      if (!_cemViewer) return;
+      _cemViewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(detail.lng, detail.lat, 800),
+        duration: 2.5
+      });
     });
+
+    // AVA command bridge — relative zoom
+    document.addEventListener('ava:adjustZoom', ({ detail }) => {
+      if (!_cemViewer) return;
+      const cam = _cemViewer.camera;
+      const pos = cam.positionCartographic;
+      const newHeight = Math.max(100, pos.height * (detail.dir > 0 ? 0.5 : 2.0));
+      cam.flyTo({
+        destination: Cesium.Cartesian3.fromRadians(pos.longitude, pos.latitude, newHeight),
+        duration: 1.0
+      });
+    });
+
+    // Clamp markers to tile surface — initial pass + 5 retries with backoff
+    setTimeout(_cemClampMarkersToSurface, 3500);
 
     // Keep popup anchored to marker as camera moves
     _cemViewer.scene.postRender.addEventListener(() => {

@@ -145,10 +145,18 @@ window.GEO_LAYERS = (() => {
       : Cesium.Color.fromCssColorString(style.fill);
     const ds = new Cesium.GeoJsonDataSource(layerId);
     await ds.load(geojson, {
-      stroke:      Cesium.Color.fromCssColorString(style.stroke),
+      stroke:        Cesium.Color.fromCssColorString(style.stroke),
       fill,
-      strokeWidth: style.strokeWidth,
+      strokeWidth:   style.strokeWidth,
       clampToGround: true
+    });
+    // Strip all point/billboard/label entities — parcel centroids from Regrid
+    // and any GeoJSON Point features get rendered as billboards by default.
+    // We only want polygon/polyline outlines on the map.
+    ds.entities.values.forEach(e => {
+      e.billboard = undefined;
+      e.point     = undefined;
+      e.label     = undefined;
     });
     await _viewer.dataSources.add(ds);
     return ds;
