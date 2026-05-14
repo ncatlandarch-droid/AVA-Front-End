@@ -4,3 +4,4 @@ node_modules/
 baselines/ava-daughter-draft.png
 *.log
 .git/
+.firebaserc

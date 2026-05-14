@@ -2,7 +2,6 @@
   publish = "."
   command = ""
   functions = "netlify/functions"
-  ignore = "exit 1"
 
 [[headers]]
   for = "/*"
