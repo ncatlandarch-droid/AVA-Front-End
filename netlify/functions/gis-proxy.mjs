@@ -36,8 +36,10 @@ export default async (request) => {
       case 'parcels':  return await fetchParcels(west, south, east, north);
       case 'contours': return await fetchContours(west, south, east, north);
       case 'soils':    return await fetchSoils(west, south, east, north);
-      case 'zoning':   return await fetchZoning(west, south, east, north);
-      default:         return json({ error: `Unknown service: ${service}` }, 400);
+      case 'zoning':     return await fetchZoning(west, south, east, north);
+      case 'floodplain': return await fetchFloodplain(west, south, east, north);
+      case 'wetlands':   return await fetchWetlands(west, south, east, north);
+      default:           return json({ error: `Unknown service: ${service}` }, 400);
     }
   } catch (err) {
     console.error('[gis-proxy]', service, err.message);
@@ -188,6 +190,54 @@ async function fetchZoning(w, s, e, n) {
     'https://gis.guilfordcountync.gov/arcgis/rest/services/Zoning/FeatureServer/0/query',
     // City of Greensboro zoning (covers most of the project area)
     'https://services1.arcgis.com/R8iuKqEFWQ0IQtOp/arcgis/rest/services/Greensboro_Zoning/FeatureServer/0/query',
+  ], params);
+
+  return geojsonResp(data);
+}
+
+// ---------------------------------------------------------------------------
+// Floodplain — FEMA National Flood Hazard Layer (NFHL)
+// ---------------------------------------------------------------------------
+async function fetchFloodplain(w, s, e, n) {
+  const params = new URLSearchParams({
+    where: '1=1',
+    geometry: `${w},${s},${e},${n}`,
+    geometryType: 'esriGeometryEnvelope',
+    inSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects',
+    outFields: 'FLD_ZONE,ZONE_SUBTY,SFHA_TF,STATIC_BFE',
+    outSR: '4326',
+    f: 'geojson',
+    resultRecordCount: 500
+  });
+
+  const data = await arcgisQuery([
+    'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query',
+    'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/3/query',
+  ], params);
+
+  return geojsonResp(data);
+}
+
+// ---------------------------------------------------------------------------
+// Wetlands — US Fish & Wildlife National Wetlands Inventory (NWI)
+// ---------------------------------------------------------------------------
+async function fetchWetlands(w, s, e, n) {
+  const params = new URLSearchParams({
+    where: '1=1',
+    geometry: `${w},${s},${e},${n}`,
+    geometryType: 'esriGeometryEnvelope',
+    inSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects',
+    outFields: 'WETLAND_TYPE,ATTRIBUTE,ACRES',
+    outSR: '4326',
+    f: 'geojson',
+    resultRecordCount: 500
+  });
+
+  const data = await arcgisQuery([
+    'https://www.fws.gov/wetlands/arcgis/rest/services/Wetlands/MapServer/0/query',
+    'https://services.arcgis.com/QVENGdaPbd4LUkLV/arcgis/rest/services/Wetlands/FeatureServer/0/query',
   ], params);
 
   return geojsonResp(data);

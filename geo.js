@@ -180,12 +180,12 @@ window.GEO = (() => {
           .then(tp => { if (_cemViewer) _cemViewer.terrainProvider = tp; })
           .catch(() => {});
         if (placeholder) placeholder.style.display = 'none';
-        if (typeof showToast === 'function') showToast('Campus 3D map loaded', 'success');
+        if (typeof showToast === 'function') showToast('Geoscope 3D loaded', 'success');
       } catch (e) {
         console.error('[AVA GEO] Google 3D Tiles failed:', e);
         _cemLoadBaseImagery();
         if (placeholder) placeholder.style.display = 'none';
-        if (typeof showToast === 'function') showToast('3D terrain loaded', 'info');
+        if (typeof showToast === 'function') showToast('Geoscope terrain loaded', 'info');
       }
     } else {
       _cemLoadBaseImagery();
@@ -250,18 +250,35 @@ window.GEO = (() => {
 
   function _cemAddMarkers() {
     if (typeof SITE_CONFIGS === 'undefined') return;
-    Object.values(SITE_CONFIGS).forEach(site => {
+    Object.values(SITE_CONFIGS).forEach((site, idx) => {
       if (!site.lat || !site.lng) return;
       const [r, g, b] = site.pinColor || [253, 185, 39];
       const hex       = _rgbToHex(r, g, b);
 
-      // Use explicit altitude above terrain — CLAMP_TO_GROUND is unreliable
-      // with Google Photorealistic 3D Tiles. CAMPUS_ALT (~270m) + 15m clearance
-      // ensures pins float visibly above the 3D mesh.
+      // Use per-site elevation if available, fallback to CAMPUS_ALT
+      const siteAlt   = (site.elevation || CAMPUS_ALT) + 15;
+
+      // --- Bounce-in animation: pin drops from +40m above over 1.2s ---
+      const startTime   = Cesium.JulianDate.now();
+      const bounceStart = siteAlt + 40;
+      const bounceDur   = 1.2;                       // seconds
+      const delay       = idx * 0.25;                 // stagger per pin
+
+      const animPosition = new Cesium.CallbackProperty(time => {
+        const elapsed = Cesium.JulianDate.secondsDifference(time, startTime) - delay;
+        if (elapsed < 0)        return Cesium.Cartesian3.fromDegrees(site.lng, site.lat, bounceStart);
+        if (elapsed >= bounceDur) return Cesium.Cartesian3.fromDegrees(site.lng, site.lat, siteAlt);
+        // ease-out bounce curve
+        const t = elapsed / bounceDur;
+        const ease = 1 - Math.pow(1 - t, 3);         // cubic ease-out
+        const alt  = bounceStart + (siteAlt - bounceStart) * ease;
+        return Cesium.Cartesian3.fromDegrees(site.lng, site.lat, alt);
+      }, false);
+
       const entity = _cemViewer.entities.add({
         id:       site.id,
         name:     site.name,
-        position: Cesium.Cartesian3.fromDegrees(site.lng, site.lat, CAMPUS_ALT + 15),
+        position: animPosition,
         billboard: {
           image:                        _pinSVG(hex),
           width:                        44,
@@ -269,8 +286,28 @@ window.GEO = (() => {
           verticalOrigin:               Cesium.VerticalOrigin.BOTTOM,
           disableDepthTestDistance:      Number.POSITIVE_INFINITY,
           scaleByDistance:               new Cesium.NearFarScalar(200, 1.4, 8000, 0.5)
+        },
+        label: {
+          text:                         site.shortName || site.name,
+          font:                         '13px Inter, sans-serif',
+          fillColor:                    Cesium.Color.WHITE,
+          outlineColor:                 Cesium.Color.BLACK,
+          outlineWidth:                 3,
+          style:                        Cesium.LabelStyle.FILL_AND_OUTLINE,
+          verticalOrigin:               Cesium.VerticalOrigin.TOP,
+          pixelOffset:                  new Cesium.Cartesian2(0, 8),
+          disableDepthTestDistance:      Number.POSITIVE_INFINITY,
+          scaleByDistance:               new Cesium.NearFarScalar(200, 1.0, 8000, 0.4),
+          showBackground:               true,
+          backgroundColor:              new Cesium.Color(0, 0.11, 0.34, 0.75)
         }
       });
+
+      // After bounce completes, freeze position (save CPU)
+      setTimeout(() => {
+        try { entity.position = Cesium.Cartesian3.fromDegrees(site.lng, site.lat, siteAlt); } catch(e) {}
+      }, (delay + bounceDur + 0.5) * 1000);
+
       _cemEntities[site.id] = entity;
     });
   }
@@ -331,7 +368,7 @@ window.GEO = (() => {
       walkBtn.style.background = walkMode ? 'rgba(253,185,39,0.9)' : 'rgba(0,46,88,0.88)';
       walkBtn.style.color      = walkMode ? '#002B52' : '#fff';
       if (walkMode) {
-        if (typeof showToast === 'function') showToast('Click anywhere on the map to walk there', 'info');
+        if (typeof showToast === 'function') showToast('Click anywhere on the Geoscope to walk there', 'info');
         _cemEnableWalkClick();
       } else {
         _cemDisableWalkClick();
@@ -527,7 +564,7 @@ window.GEO = (() => {
 
     google.maps.event.addListenerOnce(_gmMap, 'tilesloaded', () => {
       if (placeholder) placeholder.style.display = 'none';
-      if (typeof showToast === 'function') showToast('Campus map loaded', 'success');
+      if (typeof showToast === 'function') showToast('Geoscope loaded', 'success');
     });
 
     _gmAddMarkers();

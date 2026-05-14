@@ -116,7 +116,7 @@ const SITE_CONFIGS = {
     ],
     tierThresholds: { certified: 70, silver: 85, gold: 100, platinum: 135 },
     videoOverview: 'baselines/Holland_Bowl_History.mp4',
-    downloadPrefix: 'AVA-HollandBowl', lat: 36.074849, lng: -79.774697,
+    downloadPrefix: 'AVA-HollandBowl', lat: 36.074849, lng: -79.774697, elevation: 270,
     pinColor: [253, 185, 39], tagClass: 'active', tagLabel: 'Holland Bowl',
     popupDesc: 'The Yard — 1.5-acre concave landscape for SITES v2 design',
     popupStats: [
@@ -239,7 +239,7 @@ const SITE_CONFIGS = {
     ],
     tierThresholds: { certified: 70, silver: 85, gold: 100, platinum: 135 },
     videoOverview: 'baselines/IC_Overview.mp4',
-    downloadPrefix: 'AVA-InspirationCourtyard', lat: 36.072362, lng: -79.775697,
+    downloadPrefix: 'AVA-InspirationCourtyard', lat: 36.072362, lng: -79.775697, elevation: 268,
     pinColor: [0, 70, 132], tagClass: 'active', tagLabel: 'Inspiration Courtyard',
     popupDesc: 'Monroe Hall Courtyard — $140K SITES v2 ecological renovation',
     popupStats: [
@@ -351,7 +351,7 @@ const SITE_CONFIGS = {
       ]}
     ],
     tierThresholds: { certified: 70, silver: 85, gold: 100, platinum: 135 },
-    downloadPrefix: 'AVA-WoodlandGarden', lat: 36.06974645321834, lng: -79.73421003157605,
+    downloadPrefix: 'AVA-WoodlandGarden', lat: 36.06974645321834, lng: -79.73421003157605, elevation: 275,
     pinColor: [34, 139, 34], tagClass: 'active', tagLabel: 'Woodland Garden',
     popupDesc: 'Dr. Yang\'s woodland garden — 110/200 Gold baseline, 90-pt gap for capstone teams',
     popupStats: [

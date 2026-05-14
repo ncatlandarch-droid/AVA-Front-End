@@ -24,8 +24,9 @@ window.GEO_LAYERS = (() => {
   let _selectedParcel = null;
   let _panelVisible   = false;
   let _panelMinimized = false;
-  const STORE_KEY_PANEL = 'ava-layer-panel-vis';
-  const STORE_KEY_MIN   = 'ava-layer-panel-min';
+  const STORE_KEY_PANEL  = 'ava-layer-panel-vis';
+  const STORE_KEY_MIN    = 'ava-layer-panel-min';
+  const STORE_KEY_LAYERS = 'ava-active-layers';
 
   const PROXY = '/.netlify/functions/gis-proxy';
   const MAX_BBOX_DEG  = 0.12;   // ~12 km — refuse queries wider than this
@@ -42,6 +43,10 @@ window.GEO_LAYERS = (() => {
       style: { stroke: '#4CAF50', fill: 'rgba(76,175,80,0.1)',  strokeWidth: 1 } },
     { id: 'zoning',   label: 'Zoning',           icon: 'home_work', accent: '#AB47BC', type: 'geojson',
       style: { stroke: '#AB47BC', fill: 'rgba(171,71,188,0.09)', strokeWidth: 1.5 } },
+    { id: 'floodplain', label: 'Flood Zones',    icon: 'water',     accent: '#2196F3', type: 'geojson',
+      style: { stroke: '#1565C0', fill: 'rgba(33,150,243,0.12)',  strokeWidth: 1.5 } },
+    { id: 'wetlands',   label: 'Wetlands (NWI)',  icon: 'water_drop', accent: '#00897B', type: 'geojson',
+      style: { stroke: '#00695C', fill: 'rgba(0,137,123,0.12)',  strokeWidth: 1 } },
   ];
 
   // Runtime state per layer
@@ -55,6 +60,8 @@ window.GEO_LAYERS = (() => {
     _mapsKey = mapsKey;
     _buildUI();
     _addClickHandler();
+    // Restore previously active layers after a short delay (let map settle)
+    setTimeout(_restoreLayerState, 2500);
   }
 
   /* ── Public: toggle ────────────────────────────────────── */
@@ -106,12 +113,16 @@ window.GEO_LAYERS = (() => {
     } catch (e) {
       if (!['no bbox','too wide','empty'].includes(e.message)) {
         console.warn('[AVA LAYERS]', layerId, e);
-        _toast(`${def.label} unavailable`, 'warn');
+        const msg = e.message?.includes('502')
+          ? `${def.label} — GIS service temporarily unavailable, try again later`
+          : `${def.label} unavailable — check connection`;
+        _toast(msg, 'warn');
       }
     }
 
     st.loading = false;
     _refreshRow(layerId);
+    _saveLayerState();
   }
 
   function _deactivate(layerId) {
@@ -124,6 +135,30 @@ window.GEO_LAYERS = (() => {
     st.ref    = null;
     st.active = false;
     _refreshRow(layerId);
+    _saveLayerState();
+  }
+
+  /* ── Layer state persistence ─────────────────────────── */
+
+  function _saveLayerState() {
+    try {
+      const active = Object.entries(_st)
+        .filter(([, s]) => s.active)
+        .map(([id]) => id);
+      localStorage.setItem(STORE_KEY_LAYERS, JSON.stringify(active));
+    } catch (e) { /* quota exceeded — ignore */ }
+  }
+
+  function _restoreLayerState() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY_LAYERS);
+      if (!raw) return;
+      const ids = JSON.parse(raw);
+      if (!Array.isArray(ids)) return;
+      ids.forEach(id => {
+        if (_st[id] && !_st[id].active) toggle(id);
+      });
+    } catch (e) { console.warn('[AVA LAYERS] restore failed', e); }
   }
 
   function _loadRoads() {
@@ -366,7 +401,7 @@ window.GEO_LAYERS = (() => {
     const hdr = document.createElement('div');
     hdr.className = 'layer-panel-header';
     hdr.innerHTML = `
-      <span class="layer-panel-title">DATA LAYERS</span>
+      <span class="layer-panel-title">GEOSCOPE LAYERS</span>
       <button class="layer-panel-minimize" id="layer-min-btn" title="Minimize panel">
         <span class="material-symbols-outlined" style="font-size:16px;font-weight:400">expand_less</span>
       </button>`;
