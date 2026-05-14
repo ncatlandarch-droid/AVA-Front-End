@@ -255,17 +255,20 @@ window.GEO = (() => {
       const [r, g, b] = site.pinColor || [253, 185, 39];
       const hex       = _rgbToHex(r, g, b);
 
+      // Use explicit altitude above terrain — CLAMP_TO_GROUND is unreliable
+      // with Google Photorealistic 3D Tiles. CAMPUS_ALT (~270m) + 15m clearance
+      // ensures pins float visibly above the 3D mesh.
       const entity = _cemViewer.entities.add({
         id:       site.id,
         name:     site.name,
-        position: Cesium.Cartesian3.fromDegrees(site.lng, site.lat, 0),
+        position: Cesium.Cartesian3.fromDegrees(site.lng, site.lat, CAMPUS_ALT + 15),
         billboard: {
           image:                        _pinSVG(hex),
-          width:                        40,
-          height:                       50,
+          width:                        44,
+          height:                       55,
           verticalOrigin:               Cesium.VerticalOrigin.BOTTOM,
-          heightReference:              Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance:     Number.POSITIVE_INFINITY
+          disableDepthTestDistance:      Number.POSITIVE_INFINITY,
+          scaleByDistance:               new Cesium.NearFarScalar(200, 1.4, 8000, 0.5)
         }
       });
       _cemEntities[site.id] = entity;
@@ -811,14 +814,14 @@ window.GEO = (() => {
       const entity = _cemViewer.entities.add({
         id:       site.id,
         name:     site.name,
-        position: Cesium.Cartesian3.fromDegrees(site.lng, site.lat, 0),
+        position: Cesium.Cartesian3.fromDegrees(site.lng, site.lat, CAMPUS_ALT + 15),
         billboard: {
           image:                    _pinSVG(_rgbToHex(r, g, b)),
-          width:                    40,
-          height:                   50,
+          width:                    44,
+          height:                   55,
           verticalOrigin:           Cesium.VerticalOrigin.BOTTOM,
-          heightReference:          Cesium.HeightReference.CLAMP_TO_GROUND,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          scaleByDistance:          new Cesium.NearFarScalar(200, 1.4, 8000, 0.5)
         }
       });
       _cemEntities[site.id] = entity;
