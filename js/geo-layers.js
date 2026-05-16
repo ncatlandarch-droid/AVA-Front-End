@@ -591,6 +591,7 @@ window.GEO_LAYERS = (() => {
         : '';
 
       // Register a temporary SITE_CONFIGS entry so openDesignSheet can open
+      const acresFloat = acresNum ? parseFloat(acresNum) : 0;
       const tempId = `parcel_${_selectedParcel.id || Date.now()}`;
       if (typeof SITE_CONFIGS !== 'undefined') {
         SITE_CONFIGS[tempId] = {
@@ -599,6 +600,14 @@ window.GEO_LAYERS = (() => {
           shortName,
           baselineImage,
           lat, lng,
+          baselineScore: 0,
+          sections: [],
+          metrics: {
+            totalAreaAcres: acresFloat,
+            totalArea: Math.round(acresFloat * 43560),
+            soilType: _selectedParcel.soilName || 'Unknown',
+            elevationDrop: 0,
+          },
           history: {
             summary: [
               areaLine,
