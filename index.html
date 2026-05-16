@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AVA — Adaptive Visualization Assistant | Think! Design and Planning, LLC</title>
-  <meta name="description" content="AVA: Adaptive Visualization Assistant — Proprietary 3D Digital Twin platform for AI-powered landscape design and SITES v2 sustainability scoring. Powered by Think! Design and Planning, LLC.">
+  <meta name="description" content="AVA: Adaptive Visualization Assistant — A proprietary 3D spatial intelligence platform for understanding, simulating, and communicating spatial change within the Geoscope. AI-powered landscape visualization, SITES v2 sustainability scoring, and community-driven design. Powered by Think! Design and Planning, LLC.">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,7 +26,13 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" href="ava-logo.png" type="image/png">
+  <!-- Favicons -->
+  <link rel="icon" type="image/png" href="favicon.png" sizes="512x512" />
+  <link rel="shortcut icon" href="favicon.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="favicon.png" />
+  <meta name="apple-mobile-web-app-title" content="AVA" />
+  <link rel="manifest" href="site.webmanifest" />
+  <meta name="theme-color" content="#002B52" />
 </head>
 <body>
 
@@ -36,7 +42,7 @@
       <img src="ava logo.png" alt="AVA" class="top-bar-ava-logo">
       <div class="top-bar-brand">
         <h1 data-i18n="header.title">Adaptive Visualization Assistant</h1>
-        <span class="top-bar-subtitle" data-i18n="header.subtitle">PROPRIETARY 3D DIGITAL TWIN PLATFORM · THINK! DESIGN AND PLANNING, LLC</span>
+        <span class="top-bar-subtitle" data-i18n="header.subtitle">SPATIAL INTELLIGENCE FOR THE GEOSCOPE · THINK! DESIGN AND PLANNING, LLC</span>
       </div>
     </div>
 
@@ -98,14 +104,14 @@
       <div class="ava-chat-panel sidebar-ava">
         <div class="ava-portrait-block">
           <div class="ava-avatar-wrapper" onclick="handleAvaClick()" title="Click to hear AVA speak">
-            <img class="ava-portrait-img" src="baselines/Erin-AVA-Avatar.png" alt="AVA">
+            <img class="ava-portrait-img" src="baselines/Erin%20and%20Chris%20AVA.png" alt="AVA">
             <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
           </div>
           <span class="ava-name" data-i18n="ava.name">AVA</span>
           <span class="ava-role" data-i18n="ava.role">Adaptive Visualization Assistant</span>
         </div>
         <div class="ava-map-messages" id="avaMapMessages">
-          <div class="chat-msg ava" data-i18n="ava.welcome">Hi! I'm <strong>AVA</strong>, your Adaptive Visualization Assistant. Select a project on the map or switch to <strong>Projects</strong> to begin designing. You can also ask me to show layers or navigate to any address!</div>
+          <div class="chat-msg ava" data-i18n="ava.welcome">Hi! I'm <strong>AVA</strong>, your Adaptive Visualization Assistant for the Geoscope. Select a project on the map or switch to <strong>Projects</strong> to begin designing. Toggle <strong>Layers</strong> to explore parcels, soils, contours, streets, and more!</div>
         </div>
         <div class="ava-chat-input">
           <div class="ava-input-row">
@@ -141,7 +147,7 @@
           <div class="canvas-placeholder-inner">
             <span class="material-symbols-outlined canvas-ph-icon">view_in_ar</span>
             <h2 data-i18n="canvas.title">3D Adaptive Digital Twin</h2>
-            <p data-i18n="canvas.subtitle">Powered by CesiumJS &amp; Google Photorealistic Tiles<br>Select a project to begin designing.</p>
+            <p data-i18n="canvas.subtitle">Powered by CesiumJS &amp; Google Photorealistic Tiles<br>Select a project to begin designing or toggle Geoscope Layers.</p>
             <button class="canvas-placeholder-btn" onclick="switchView('projects')">
               <span class="material-symbols-outlined">grid_view</span>
               <span data-i18n="canvas.browseProjects">Browse Projects</span>
@@ -193,7 +199,7 @@
         <div class="ava-chat-panel">
           <div class="ava-portrait-block">
             <div class="ava-avatar-wrapper" onclick="handleAvaClick()" title="Click to hear AVA speak">
-              <img class="ava-portrait-img" src="baselines/Erin-AVA-Avatar.png" alt="AVA">
+              <img class="ava-portrait-img" src="baselines/Erin%20and%20Chris%20AVA.png" alt="AVA">
               <span class="ava-voice-badge" onclick="event.stopPropagation(); AVA_TTS.toggleMute()" title="Toggle voice on/off">🔊</span>
             </div>
             <span class="ava-name" data-i18n="ava.name">AVA</span>
@@ -672,6 +678,7 @@
   <script src="js/gallery-panel.js"></script>
   <script src="js/aggregate-engine.js"></script>
   <script src="js/admin-panel.js"></script>
+  <script src="js/master-plan-studio.js"></script>
   <script src="js/ava-commands.js"></script>
   <script src="app.js"></script>
   <script src="cre-publish.js"></script>
