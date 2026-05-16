@@ -570,10 +570,11 @@ window.GEO_LAYERS = (() => {
     // Google Maps plan-view path — build a temporary project from parcel data
     if (_inGmMode() && _selectedParcel.gmFeature) {
       const geom = _selectedParcel.gmFeature.getGeometry();
+      let _parcBounds = null;
       if (geom?.getType() === 'Polygon') {
-        const bounds = new google.maps.LatLngBounds();
-        geom.getArray()[0].getArray().forEach(pt => bounds.extend(pt));
-        _gmMap.fitBounds(bounds, { padding: 60 });
+        _parcBounds = new google.maps.LatLngBounds();
+        geom.getArray()[0].getArray().forEach(pt => _parcBounds.extend(pt));
+        _gmMap.fitBounds(_parcBounds, { padding: 60 });
       }
 
       const lat      = _selectedParcel.centLat || 0;
@@ -585,10 +586,17 @@ window.GEO_LAYERS = (() => {
       const soilLine = soilDesc ? `Primary soil: ${soilDesc}.` : '';
       const areaLine = acresNum ? `${acresNum} acres.` : '';
 
-      // Satellite thumbnail via Google Static Maps (uses same key as map tiles)
-      const baselineImage = _mapsKey
-        ? `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=800x600&maptype=satellite&key=${_mapsKey}`
-        : '';
+      // Satellite thumbnail: use visible bounds so the full parcel fits in frame
+      let baselineImage = '';
+      if (_mapsKey) {
+        if (_parcBounds) {
+          const sw = _parcBounds.getSouthWest();
+          const ne = _parcBounds.getNorthEast();
+          baselineImage = `https://maps.googleapis.com/maps/api/staticmap?visible=${sw.lat()},${sw.lng()}|${ne.lat()},${ne.lng()}&size=800x600&maptype=satellite&key=${_mapsKey}`;
+        } else {
+          baselineImage = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=800x600&maptype=satellite&key=${_mapsKey}`;
+        }
+      }
 
       // Register a temporary SITE_CONFIGS entry so openDesignSheet can open
       const acresFloat = acresNum ? parseFloat(acresNum) : 0;
