@@ -288,15 +288,17 @@ async function imageToBase64(src) {
 // ---------------------------------------------------------------------------
 document.addEventListener('ava:planViewCapture', async (evt) => {
   const { imageDataUrl, parcel, soils, area, address, siteId } = evt.detail || {};
-  if (!imageDataUrl) return;
 
-  // Build an enriched plan-view prompt using parcel context
-  const soilLine = soils ? `Soil: ${soils}.` : '';
-  const areaLine = area  ? `Site area: ${area} acres.` : '';
+  // Build enriched prompt from parcel context (works with or without a screenshot)
+  const soilLine = soils   ? `Soil: ${soils}.` : '';
+  const areaLine = area    ? `Site area: ${area} acres.` : '';
   const addrLine = address ? `Location: ${address}.` : '';
+  const hasImage = !!imageDataUrl;
   const prompt = [
     'You are AVA, an expert landscape architect and sustainable site designer.',
-    'I am sharing an overhead aerial view of a site captured from a 3D digital twin.',
+    hasImage
+      ? 'I am sharing an overhead aerial view of a site captured from a 3D digital twin.'
+      : 'I am sharing parcel data for a site selected in the Geoscope.',
     addrLine, areaLine, soilLine,
     'Generate a detailed conceptual landscape master plan for this site.',
     'Include: circulation paths, planting zones, stormwater features, gathering spaces,',
@@ -304,7 +306,7 @@ document.addEventListener('ava:planViewCapture', async (evt) => {
     'Describe your design decisions and provide a rendered plan view image.'
   ].filter(Boolean).join(' ');
 
-  // Pre-fill the design prompt textarea if it exists and trigger generation
+  // Pre-fill the design prompt textarea if it exists
   const textarea = document.getElementById('designPrompt') || document.querySelector('[data-design-prompt]');
   if (textarea) {
     textarea.value = prompt;
@@ -315,15 +317,27 @@ document.addEventListener('ava:planViewCapture', async (evt) => {
   const designTab = document.querySelector('[data-tab="design"], [data-panel="design"], #tab-design');
   if (designTab) designTab.click();
 
-  // If AVA chat is active, inject the image + prompt as a user message
-  if (window.STATE?.siteId || siteId) {
+  if (hasImage && (window.STATE?.siteId || siteId)) {
+    // Cesium path: send aerial screenshot + prompt to design AI
     const imageBase64 = imageDataUrl.split(',')[1];
     const mimeType = imageDataUrl.startsWith('data:image/jpeg') ? 'image/jpeg' : 'image/png';
     try {
       await window.sendDesignMessage?.({ prompt, imageBase64, mimeType });
-    } catch (_) {
-      // sendDesignMessage may not be exposed; textarea pre-fill is the fallback
+    } catch (_) {}
+  } else {
+    // GM / text-only path: inject design brief into the map sidebar AVA chat
+    const chatBox = document.getElementById('avaMapMessages');
+    const chatInput = document.getElementById('avaMapInput') || document.querySelector('.ava-input-row input, .ava-chat-input input');
+    if (chatBox) {
+      const msg = document.createElement('div');
+      msg.className = 'chat-msg ava';
+      const label = address ? `<strong>${address}</strong>` : 'the selected parcel';
+      const meta = [areaLine, soilLine].filter(Boolean).join(' ');
+      msg.innerHTML = `I've set the design context to ${label}. ${meta} What would you like to design here? I can suggest a landscape concept, SITES v2 strategies, or a planting plan.`;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
+    if (chatInput) chatInput.focus();
   }
 });
 
