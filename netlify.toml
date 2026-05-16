@@ -11,3 +11,9 @@
   [headers.values]
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
+
+[functions."gis-proxy"]
+  timeout = 26
+
+[functions."master-plan-render"]
+  timeout = 26

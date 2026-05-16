@@ -5,3 +5,5 @@ baselines/ava-daughter-draft.png
 *.log
 .git/
 .firebaserc
+# Raw shapefiles (303 MB) — not needed at runtime; processed GeoJSON goes in data/guilford/processed/
+data/guilford/raw/

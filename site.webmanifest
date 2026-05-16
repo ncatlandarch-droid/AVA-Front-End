@@ -1,0 +1,17 @@
+{
+  "name": "AVA — Adaptive Visualization Assistant",
+  "short_name": "AVA",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#002B52",
+  "background_color": "#002B52",
+  "display": "standalone",
+  "start_url": "/",
+  "description": "Adaptive Visualization Assistant for the Geoscope — a spatial intelligence platform by Think! Design and Planning, LLC."
+}

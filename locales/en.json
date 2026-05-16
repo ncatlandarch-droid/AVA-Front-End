@@ -1,6 +1,6 @@
 {
   "header.title": "Adaptive Visualization Assistant",
-  "header.subtitle": "PROPRIETARY 3D DIGITAL TWIN PLATFORM · THINK! DESIGN AND PLANNING, LLC",
+  "header.subtitle": "SPATIAL INTELLIGENCE FOR THE GEOSCOPE · THINK! DESIGN AND PLANNING, LLC",
   "header.scoreboard.label": "SITES v2",
   "header.scoreboard.sites": "sites",
   "header.scoreboard.avg": "Avg",
@@ -10,12 +10,12 @@
 
   "ava.name": "AVA",
   "ava.role": "Adaptive Visualization Assistant",
-  "ava.welcome": "Hi! I'm <strong>AVA</strong>, your Adaptive Visualization Assistant. Select a project on the map or switch to <strong>Projects</strong> to begin designing. You can also ask me to show layers or navigate to any address!",
+  "ava.welcome": "Hi! I'm <strong>AVA</strong>, your Adaptive Visualization Assistant for the Geoscope. Select a project on the map or switch to <strong>Projects</strong> to begin designing. Toggle <strong>Layers</strong> to explore parcels, soils, contours, streets, and more!",
   "ava.placeholder.map": "Ask AVA about any site...",
   "ava.placeholder.design": "Describe a design element to add...",
 
   "canvas.title": "3D Adaptive Digital Twin",
-  "canvas.subtitle": "Powered by CesiumJS & Google Photorealistic Tiles<br>Select a project to begin designing.",
+  "canvas.subtitle": "Powered by CesiumJS & Google Photorealistic Tiles<br>Select a project to begin designing or toggle Geoscope Layers.",
   "canvas.browseProjects": "Browse Projects",
 
   "palette.title": "Design Palette",

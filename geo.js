@@ -38,6 +38,9 @@ window.GEO = (() => {
 
   /* ── State ────────────────────────────────────────────── */
   let _mode       = null;
+  let _mapsKey    = null;   // stored for lazy Google Maps init
+  let _cesiumToken = null;  // stored for mode restore
+  let _savedCesiumView = null;  // camera state saved when auto-switching to Google Maps
 
   // Cesium
   let _cemViewer          = null;
@@ -59,6 +62,8 @@ window.GEO = (() => {
 
   function init(mapsKey, cesiumToken) {
     if (_mode) return;
+    _mapsKey     = mapsKey    || null;
+    _cesiumToken = cesiumToken || null;
     if (cesiumToken) {
       _mode = 'cesium';
       _loadCesium(mapsKey, cesiumToken);
@@ -69,6 +74,148 @@ window.GEO = (() => {
       _mode = 'leaflet';
       _initLeaflet();
     }
+  }
+
+  /**
+   * Switch between 'cesium' and 'google' map views.
+   * Both containers coexist in the DOM; we show/hide as needed.
+   * Google Maps is lazy-loaded on first switch.
+   */
+  function switchMode(targetMode) {
+    if (targetMode === _mode) return;
+    const canvas = document.getElementById('three-canvas');
+    if (!canvas) return;
+
+    if (targetMode === 'google') {
+      if (!_mapsKey) {
+        if (typeof showToast === 'function') showToast('Google Maps API key required', 'error');
+        return;
+      }
+      // Hide Cesium
+      const cemDiv = document.getElementById('cesium-container');
+      const credDiv = document.getElementById('cem-credits');
+      if (cemDiv) cemDiv.style.display = 'none';
+      if (credDiv) credDiv.style.display = 'none';
+      _cemHidePopup();
+
+      // Lazy-init Google Maps if first time
+      if (!_gmMap) {
+        _loadGoogleMaps(_mapsKey);
+      } else {
+        const gmDiv = document.getElementById('google-map');
+        if (gmDiv) gmDiv.style.display = 'block';
+        google.maps.event.trigger(_gmMap, 'resize');
+      }
+      _mode = 'google';
+      _updateViewToggleBtn();
+      if (typeof showToast === 'function') showToast('Plan View — Google Maps satellite', 'info');
+
+    } else if (targetMode === 'cesium') {
+      if (!_cemViewer) return;
+
+      // Capture Google Maps / Street View position before hiding
+      let syncLat = CAMPUS_CENTER.lat, syncLng = CAMPUS_CENTER.lng;
+      let syncHeight = 1200, syncHeading = 0, syncPitch = -45;
+      let fromStreetView = false;
+
+      if (_gmMap) {
+        const sv = _gmMap.getStreetView();
+        if (sv && sv.getVisible()) {
+          // ── Street View active: capture panorama POV ──
+          fromStreetView = true;
+          const svPos = sv.getPosition();
+          if (svPos) { syncLat = svPos.lat(); syncLng = svPos.lng(); }
+          const pov = sv.getPov();
+          syncHeading = pov?.heading || 0;
+          syncPitch   = pov?.pitch   || 0;
+          // Eye-level height: campus elevation + ~2m standing height
+          syncHeight  = CAMPUS_ALT + 2;
+          // Close Street View before switching
+          sv.setVisible(false);
+        } else {
+          // ── Normal map view: capture center + zoom ──
+          const c = _gmMap.getCenter();
+          if (c) { syncLat = c.lat(); syncLng = c.lng(); }
+          const z = _gmMap.getZoom() || 17;
+          syncHeight = Math.max(200, Math.min(50000, 10 * Math.pow(2, 26 - z)));
+        }
+      }
+
+      // Hide Google Maps
+      const gmDiv = document.getElementById('google-map');
+      if (gmDiv) gmDiv.style.display = 'none';
+
+      // Show Cesium
+      const cemDiv = document.getElementById('cesium-container');
+      const credDiv = document.getElementById('cem-credits');
+      if (cemDiv) cemDiv.style.display = 'block';
+      if (credDiv) credDiv.style.display = 'block';
+
+      // Fly Cesium camera to the synced location
+      _cemViewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(syncLng, syncLat, syncHeight),
+        orientation: {
+          heading: Cesium.Math.toRadians(syncHeading),
+          pitch:   Cesium.Math.toRadians(syncPitch),
+          roll:    0
+        },
+        duration: fromStreetView ? 0.8 : 1.5
+      });
+
+      _mode = 'cesium';
+      _updateViewToggleBtn();
+      _hideBackTo3DBtn();
+      if (typeof showToast === 'function') showToast('Switched to Cesium 3D view', 'info');
+    }
+  }
+
+  let _viewToggleBtn = null;
+  function _updateViewToggleBtn() {
+    if (!_viewToggleBtn) return;
+    if (_mode === 'cesium') {
+      _viewToggleBtn.innerHTML = `<span style="font-family:'Material Symbols Outlined';font-size:15px;font-weight:400">map</span>Google Maps`;
+    } else {
+      _viewToggleBtn.innerHTML = `<span style="font-family:'Material Symbols Outlined';font-size:15px;font-weight:400">view_in_ar</span>Cesium 3D`;
+    }
+  }
+
+  /** Floating 'Back to 3D' button shown when in Google Maps mode */
+  function _showBackTo3DBtn() {
+    let btn = document.getElementById('backTo3DBtn');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'backTo3DBtn';
+      btn.style.cssText = [
+        'position:absolute','top:8px','left:50%','transform:translateX(-50%)',
+        'z-index:60','pointer-events:auto',
+        'background:linear-gradient(135deg,#004684,#002B52)','color:#fff',
+        'border:2px solid rgba(253,185,39,0.6)','border-radius:12px',
+        'padding:10px 22px','font-family:inherit','font-size:13px','font-weight:700',
+        'cursor:pointer','backdrop-filter:blur(8px)',
+        'display:flex','align-items:center','gap:8px',
+        'box-shadow:0 4px 20px rgba(0,0,0,0.4)','transition:all 0.2s',
+        'animation:backTo3DPulse 2s ease-in-out infinite'
+      ].join(';');
+      btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px">view_in_ar</span>Return to 3D View`;
+      btn.onmouseenter = () => { btn.style.background = 'linear-gradient(135deg,#FDB927,#e6a520)'; btn.style.color = '#002B52'; };
+      btn.onmouseleave = () => { btn.style.background = 'linear-gradient(135deg,#004684,#002B52)'; btn.style.color = '#fff'; };
+      btn.addEventListener('click', () => switchMode('cesium'));
+
+      // Add pulse animation
+      if (!document.getElementById('backTo3DStyle')) {
+        const style = document.createElement('style');
+        style.id = 'backTo3DStyle';
+        style.textContent = `@keyframes backTo3DPulse { 0%,100% { box-shadow:0 4px 20px rgba(0,0,0,0.4); } 50% { box-shadow:0 4px 30px rgba(253,185,39,0.5); } }`;
+        document.head.appendChild(style);
+      }
+      document.getElementById('three-canvas')?.appendChild(btn);
+    }
+    btn.style.display = 'flex';
+  }
+
+  function _hideBackTo3DBtn() {
+    const btn = document.getElementById('backTo3DBtn');
+    if (btn) btn.style.display = 'none';
   }
 
   function focusSite(siteId) {
@@ -233,6 +380,38 @@ window.GEO = (() => {
         popup.style.top  = (screenPos.y - 300) + 'px';
       }
     });
+
+    // ─── Auto-switch: plan view → Google Maps ───
+    // When camera pitch reaches near -80° (looking straight down),
+    // automatically switch to Google Maps satellite for a cleaner plan view.
+    if (_mapsKey) {
+      let _planSwitchDebounce = null;
+      _cemViewer.camera.moveEnd.addEventListener(() => {
+        if (_mode !== 'cesium') return;  // already switched
+        clearTimeout(_planSwitchDebounce);
+        _planSwitchDebounce = setTimeout(() => {
+          const pitchDeg = Cesium.Math.toDegrees(_cemViewer.camera.pitch);
+          if (pitchDeg < -78) {
+            // Save Cesium camera state for return trip
+            const pos = _cemViewer.camera.positionCartographic;
+            _savedCesiumView = {
+              lng: Cesium.Math.toDegrees(pos.longitude),
+              lat: Cesium.Math.toDegrees(pos.latitude),
+              height: pos.height
+            };
+            switchMode('google');
+            // Sync Google Maps to same location
+            if (_gmMap && _savedCesiumView) {
+              _gmMap.setCenter({ lat: _savedCesiumView.lat, lng: _savedCesiumView.lng });
+              // Convert height → zoom (rough: z ≈ 26 - log2(h/10))
+              const z = Math.min(20, Math.max(14, Math.round(26 - Math.log2(Math.max(_savedCesiumView.height, 100) / 10))));
+              _gmMap.setZoom(z);
+              _gmMap.setTilt(0);
+            }
+          }
+        }, 400);
+      });
+    }
   }
 
   function _cemLoadBaseImagery() {
@@ -360,6 +539,14 @@ window.GEO = (() => {
 
     // Reset view
     hud.appendChild(_btn('home', 'Campus', () => _cemResetView()));
+
+    // View mode toggle — only show if Google Maps key is available
+    if (_mapsKey) {
+      _viewToggleBtn = _btn('map', 'Google Maps', () => {
+        switchMode(_mode === 'cesium' ? 'google' : 'cesium');
+      });
+      hud.appendChild(_viewToggleBtn);
+    }
 
     // Ground-level walk mode
     let walkMode = false;
@@ -542,10 +729,11 @@ window.GEO = (() => {
       center:                   { lat: CAMPUS_CENTER.lat, lng: CAMPUS_CENTER.lng },
       zoom:                     CAMPUS_ZOOM_G,
       mapTypeId:                google.maps.MapTypeId.HYBRID,
-      tilt:                     45,
+      tilt:                     0,
       heading:                  0,
       rotateControl:            false,
-      streetViewControl:        false,
+      streetViewControl:        true,
+      streetViewControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
       scaleControl:             false,
       fullscreenControl:        true,
       fullscreenControlOptions: { position: google.maps.ControlPosition.TOP_RIGHT },
@@ -569,6 +757,7 @@ window.GEO = (() => {
 
     _gmAddMarkers();
     _gmAddTiltControls();
+    if (window.GEO_LAYERS) GEO_LAYERS.setGmMap(_gmMap);
   }
 
   function _gmAddMarkers() {
@@ -652,10 +841,10 @@ window.GEO = (() => {
 
     const tiltLabel = document.createElement('div');
     tiltLabel.style.cssText = 'font:600 10px/1 Inter,sans-serif;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.6);letter-spacing:.5px';
-    tiltLabel.textContent = '45°';
+    tiltLabel.textContent = '0°';
 
     const slider = document.createElement('input');
-    slider.type  = 'range'; slider.min = '0'; slider.max = '67'; slider.step = '5'; slider.value = '45';
+    slider.type  = 'range'; slider.min = '0'; slider.max = '67'; slider.step = '5'; slider.value = '0';
     slider.style.cssText = ['writing-mode:vertical-lr','direction:rtl','width:32px','height:80px','cursor:pointer','accent-color:#004684'].join(';');
     slider.title = 'Drag to tilt';
     slider.oninput = () => { _gmMap.setTilt(parseInt(slider.value)); tiltLabel.textContent = slider.value + '°'; };
@@ -688,7 +877,7 @@ window.GEO = (() => {
       slider.value = '0'; tiltLabel.textContent = '0°';
     }));
 
-    _gmMap.controls[google.maps.ControlPosition.RIGHT_CENTER].push(panel);
+    _gmMap.controls[google.maps.ControlPosition.LEFT_CENTER].push(panel);
   }
 
   function _fetchElevation(site) {
@@ -906,7 +1095,7 @@ window.GEO = (() => {
   }
 
   return {
-    init, focusSite, resetView, isReady, searchNearby, refreshMarkers,
+    init, focusSite, resetView, isReady, searchNearby, refreshMarkers, switchMode,
     hidePopup: _cemHidePopup,
     get mode() { return _mode; }
   };
