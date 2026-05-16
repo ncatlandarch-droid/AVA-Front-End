@@ -567,7 +567,7 @@ window.GEO_LAYERS = (() => {
   async function captureForDesign() {
     if (!_selectedParcel) return;
 
-    // Google Maps plan-view path — fit map to parcel bounds and dispatch design event
+    // Google Maps plan-view path — build a temporary project from parcel data
     if (_inGmMode() && _selectedParcel.gmFeature) {
       const geom = _selectedParcel.gmFeature.getGeometry();
       if (geom?.getType() === 'Polygon') {
@@ -575,26 +575,46 @@ window.GEO_LAYERS = (() => {
         geom.getArray()[0].getArray().forEach(pt => bounds.extend(pt));
         _gmMap.fitBounds(bounds, { padding: 60 });
       }
+
+      const lat      = _selectedParcel.centLat || 0;
+      const lng      = _selectedParcel.centLng || 0;
       const acresNum = _selectedParcel.acres ? (+_selectedParcel.acres).toFixed(2) : null;
-      const soils = [_selectedParcel.soilName, _selectedParcel.hydroGrp ? `Hydro Grp ${_selectedParcel.hydroGrp}` : null].filter(Boolean).join(', ');
-      document.dispatchEvent(new CustomEvent('ava:planViewCapture', {
-        detail: {
-          imageDataUrl: null,
-          address: _selectedParcel.address,
-          area:    acresNum,
-          soils:   soils || null,
-          parcel: {
-            address: _selectedParcel.address,
-            owner:   _selectedParcel.owner,
-            acres:   acresNum,
-            soil:    _selectedParcel.soilName,
-            hydro:   _selectedParcel.hydroGrp,
-            landUse: _selectedParcel.landUse,
-            zone:    _selectedParcel.zone,
-          }
-        }
-      }));
-      _toast('Design extents set to parcel — opening design workspace', 'success');
+      const addr     = _selectedParcel.address || 'Selected Parcel';
+      const shortName = addr.split(',')[0].trim();
+      const soilDesc = [_selectedParcel.soilName, _selectedParcel.drainClass].filter(Boolean).join(' · ');
+      const soilLine = soilDesc ? `Primary soil: ${soilDesc}.` : '';
+      const areaLine = acresNum ? `${acresNum} acres.` : '';
+
+      // Satellite thumbnail via Google Static Maps (uses same key as map tiles)
+      const baselineImage = _mapsKey
+        ? `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=800x600&maptype=satellite&key=${_mapsKey}`
+        : '';
+
+      // Register a temporary SITE_CONFIGS entry so openDesignSheet can open
+      const tempId = `parcel_${_selectedParcel.id || Date.now()}`;
+      if (typeof SITE_CONFIGS !== 'undefined') {
+        SITE_CONFIGS[tempId] = {
+          id: tempId,
+          name: addr,
+          shortName,
+          baselineImage,
+          lat, lng,
+          history: {
+            summary: [
+              areaLine,
+              soilLine,
+              _selectedParcel.landUse ? `Current use: ${_selectedParcel.landUse}.` : '',
+              _selectedParcel.zone    ? `Zoning: ${_selectedParcel.zone}.` : '',
+              _selectedParcel.owner   ? `Owner: ${_selectedParcel.owner}.` : '',
+            ].filter(Boolean).join(' ') || 'Parcel selected from the Geoscope.',
+          },
+          scores: {},
+        };
+      }
+
+      if (typeof openDesignSheet === 'function') {
+        openDesignSheet(tempId);
+      }
       return;
     }
 
