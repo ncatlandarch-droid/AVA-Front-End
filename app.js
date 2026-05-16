@@ -344,12 +344,13 @@ function initScorePanel() {
   const feedbackEl = document.getElementById('scoreFeedback');
   if (feedbackEl) { feedbackEl.innerHTML = ''; feedbackEl.style.display = 'none'; }
   // Pre-fill assumed section scores, zeros for design sections
-  state.sectionScores = config.sections.map(s => s.assumed ? (s.assumedPts || 0) : 0);
+  const sections = config.sections || [];
+  state.sectionScores = sections.map(s => s.assumed ? (s.assumedPts || 0) : 0);
   const assumedTotal = state.sectionScores.reduce((a, b) => a + b, 0);
   const baselineScore = Math.max(config.baselineScore || 0, assumedTotal);
   state.currentScore = baselineScore;
   document.getElementById('scoreValue').textContent = baselineScore.toString();
-  const maxTotal = config.sections.reduce((sum, s) => sum + s.maxPts, 0);
+  const maxTotal = sections.reduce((sum, s) => sum + (s.maxPts || 0), 0) || 200;
   const offset = 326.73 - (baselineScore / maxTotal) * 326.73;
   document.getElementById('scoreRingProgress').style.strokeDashoffset = offset.toString();
   const tier = DESIGN_ENGINE.getTier(baselineScore);
@@ -357,9 +358,9 @@ function initScorePanel() {
   document.getElementById('tierBadge').className = `tier-badge ${tier}`;
   updateTierMedal(tier);
   const container = document.getElementById('sectionScores');
-  container.innerHTML = config.sections.map((s, i) => {
+  container.innerHTML = sections.map((s, i) => {
     const pts = state.sectionScores[i];
-    const pct = (pts / s.maxPts) * 100;
+    const pct = s.maxPts ? (pts / s.maxPts) * 100 : 0;
     const assumed = s.assumed ? ' assumed' : '';
     return `<div class="section-score-row${assumed}">
       <span class="section-score-name">${s.name}${s.assumed ? ' \u2713' : ''}</span>
