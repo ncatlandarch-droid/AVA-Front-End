@@ -298,7 +298,8 @@ async function callGeminiAPI(prompt, imageBase64, referenceImageBase64, refMimeT
         } catch (proxyErr) { resp = null; }
       }
       if (!resp || !resp.ok) {
-        if (!state.geminiKey) throw new Error('Enter your Gemini API key in Settings to generate designs.');
+        // Fall back to direct call only when running locally with a personal key
+        if (!state.geminiKey) throw new Error('Design generation unavailable — contact the site administrator.');
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.geminiKey}`;
         resp = await fetch(url, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -369,7 +370,7 @@ async function callGeminiTextOnly(prompt, imageBase64) {
         } catch (_) { resp = null; }
       }
       if (!resp?.ok) {
-        if (!state.geminiKey) throw new Error('Enter your Gemini API key in Settings.');
+        if (!state.geminiKey) throw new Error('Design generation unavailable — contact the site administrator.');
         resp = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.geminiKey}`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mkPayload()) }
