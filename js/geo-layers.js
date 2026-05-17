@@ -588,6 +588,8 @@ window.GEO_LAYERS = (() => {
 
       // Satellite thumbnail: expand bounds 20% so parcel isn't flush to edge
       let baselineImage = '';
+      let imageBounds = null;
+      let parcelRing = null;
       if (_mapsKey) {
         if (_parcBounds) {
           const sw = _parcBounds.getSouthWest();
@@ -599,6 +601,10 @@ window.GEO_LAYERS = (() => {
           const n = (ne.lat() + latPad).toFixed(7);
           const e = (ne.lng() + lngPad).toFixed(7);
           baselineImage = `https://maps.googleapis.com/maps/api/staticmap?visible=${s},${w}|${n},${e}&size=800x600&maptype=satellite&key=${_mapsKey}`;
+          imageBounds = { s: parseFloat(s), w: parseFloat(w), n: parseFloat(n), e: parseFloat(e) };
+          // Collect polygon ring for SVG overlay
+          parcelRing = [];
+          geom.getArray()[0].getArray().forEach(pt => parcelRing.push({ lat: pt.lat(), lng: pt.lng() }));
         } else {
           baselineImage = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=800x600&maptype=satellite&key=${_mapsKey}`;
         }
@@ -613,6 +619,8 @@ window.GEO_LAYERS = (() => {
           name: addr,
           shortName,
           baselineImage,
+          imageBounds,
+          parcelRing,
           lat, lng,
           baselineScore: 0,
           sections: [],
@@ -621,6 +629,8 @@ window.GEO_LAYERS = (() => {
             totalArea: Math.round(acresFloat * 43560),
             soilType: _selectedParcel.soilName || 'Unknown',
             elevationDrop: 0,
+            landUse: _selectedParcel.landUse || null,
+            zone: _selectedParcel.zone || null,
           },
           history: {
             summary: [

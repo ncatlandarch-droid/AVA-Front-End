@@ -286,6 +286,13 @@
 
       <!-- Column 3: Score Panel -->
       <div class="sheet-col sheet-col-score">
+        <!-- Metrics system toggle -->
+        <div class="metrics-toggle" id="metricsToggle">
+          <button class="metrics-btn active" data-metrics="sites" onclick="switchMetrics('sites')">SITES v2</button>
+          <button class="metrics-btn" data-metrics="leed" onclick="switchMetrics('leed')">LEED ND</button>
+          <button class="metrics-btn" data-metrics="lbc" onclick="switchMetrics('lbc')">LBC</button>
+          <button class="metrics-btn" data-metrics="carbon" onclick="switchMetrics('carbon')">Carbon</button>
+        </div>
         <div class="score-ring-container">
           <svg class="score-ring" viewBox="0 0 120 120">
             <circle class="score-ring-bg" cx="60" cy="60" r="52"></circle>

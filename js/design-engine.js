@@ -179,8 +179,40 @@ MATERIALS: Natural stone, FSC-certified timber, decomposed granite, reclaimed lo
 EDUCATION: Interpretive signage about forest ecology, tree species identification, QR codes linking to AVA digital twin research data.
 INNOVATION: IoT soil moisture and temperature sensors, wildlife camera traps, microclimate weather station, digital twin data collection kiosk, acoustic bird monitoring.`
   };
-  return siteSpecific[state.activeSite] || `Design a complete sustainable landscape with bioswales, rain gardens, permeable paving, cisterns, stormwater retention, native canopy trees, pollinator meadow, groundcover, biodiverse shrubs, topsoil, reclaimed brick, FSC timber, recycled steel, salvaged stone, permeable pavers, ADA pathways, shaded seating, solar lighting, outdoor classroom, gathering plaza, interpretive signage, wayfinding, QR codes, digital twin, educational exhibits, IoT sensors, smart irrigation, solar panels, and green roof systems.`;
+  if (siteSpecific[state.activeSite]) return siteSpecific[state.activeSite];
+
+  // Parcel-mode: generate a site-specific auto-design using actual parcel data
+  const m = config.metrics || {};
+  const acres = m.totalAreaAcres || '?';
+  const soil  = m.soilType || 'Piedmont clay';
+  const use   = m.landUse  ? `, currently ${m.landUse}` : '';
+  const zone  = m.zone     ? `, zoned ${m.zone}` : '';
+  return `Design a complete SITES v2 Platinum-targeting sustainable landscape master plan for ${config.name} (${acres} acres, ${soil} soil${use}${zone}). Target ≥135/200 points.
+
+WATER (§3 — 40 pts): Install bioswales along all paved edges with native sedges. Rain gardens at every building downspout and impervious edge. Permeable paving for ≥50% of all hardscape areas. Underground cistern for rainwater harvest. Stormwater retention basin at lowest topographic point. Aim to capture the 1% ARI storm event on-site.
+
+SOIL & VEGETATION (§4 — 45 pts): Remediate compacted soils with deep-tilled organic topsoil and mycorrhizal inoculant. Plant native Piedmont canopy trees — Willow Oak, Sweetgum, Eastern Redbud, Flowering Dogwood — targeting ≥25% canopy at maturity. Pollinator meadow of Black-eyed Susan, Purple Coneflower, Goldenrod, Milkweed, and native asters. Multi-layered shrub borders of Beautyberry, Inkberry, Winterberry, Spicebush. Groundcover of Wild Ginger, Carex pensylvanica, and Creeping Phlox.
+
+MATERIALS (§5 — 20 pts): Reclaimed brick pathways in herringbone pattern. FSC-certified timber for benches, pergolas, and shade structures. Recycled steel for arbors and trellis screens. Locally-sourced Piedmont granite and fieldstone for seat walls. Permeable concrete pavers for plazas.
+
+HUMAN HEALTH (§6 — 30 pts): ADA-accessible loop pathway connecting all zones. Shaded seating cluster every 200 feet. Solar-powered LED pathway lighting for evening use. Outdoor classroom / amphitheater seating 30+ people. Central gathering plaza with sculptural water feature. Ergonomic timber benches under tree canopy. Individual study pods with charging ports.
+
+EDUCATION (§9 — 20 pts): Interpretive signage about native Piedmont ecology and SITES v2 credits. Wayfinding totems with site map. QR code stations linking to AVA digital twin. Demonstration rain garden with visible cross-section exhibit. Tree species identification labels.
+
+INNOVATION (§10 — 20 pts): IoT soil moisture and temperature sensors. Smart drip irrigation with weather-responsive scheduling. Solar panel shade structure integrated into gathering area. Real-time monitoring kiosk connected to digital twin. Acoustic bird monitoring. Green roof element on any covered structure.`;
 }
+
+// SITES v2 credit reference injected into every parcel-mode prompt
+const SITES_CREDIT_BRIEF = `
+SITES v2 SUSTAINABILITY TARGETS (200 pts total — aim for Platinum ≥135):
+§3 Water (40 pts): Bioswales, rain gardens, permeable paving ≥50% hardscape, cisterns, constructed wetlands. Target: capture 1% ARI storm event on-site.
+§4 Soil & Vegetation (45 pts): Native Piedmont species (USDA Zone 7b), ≥25% canopy at maturity, pollinator habitat, soil health restoration, no invasives.
+§5 Materials (20 pts): Reclaimed, FSC-certified timber, recycled-content, locally-sourced ≤500 miles, avoid virgin plastic/PVC.
+§6 Human Health & Wellbeing (30 pts): ADA-accessible loop, shade ≥40% of seating, node every 200 ft, biophilic elements, universal design.
+§9 Education & Performance (20 pts): Interpretive signage, QR/digital-twin markers, demonstration features, community stewardship.
+§10 Innovation (20 pts): IoT sensors, smart irrigation, renewable energy, living systems, digital twin integration.
+
+CAMPUS / URBAN DESIGN PRINCIPLES: Olmsted-inspired connected green network · pedestrian-priority circulation · 15-min walkability · biophilic ratio ≥15% living surface · defensible-without-fortress edges · activity-generating borders · wayfinding legibility.`;
 
 function buildGeminiPrompt(userPrompt) {
   const config = SITE_CONFIGS[state.activeSite];
@@ -188,8 +220,6 @@ function buildGeminiPrompt(userPrompt) {
   const prev = state.cumulativePrompts.slice(0, -1);
   let ctx = '';
   if (!isFirst && prev.length > 0) {
-    // All elements are re-rendered from the ORIGINAL baseline each iteration so
-    // camera angle and building geometry stay locked to the source photo.
     ctx = `\nALL DESIGN ELEMENTS TO RENDER (apply every item below simultaneously to the ORIGINAL baseline photo — do NOT compound from a previously generated image):\n${prev.map((p,i) => `  ${i+1}. ${p}`).join('\n')}\nThe NEW ELEMENT listed below is the latest addition — include it alongside ALL items above.\n`;
   }
   let goalsBlock = '';
@@ -201,26 +231,31 @@ function buildGeminiPrompt(userPrompt) {
       + (pg.avoid ? '  AVOID (inappropriate for this site): ' + pg.avoid.join(', ') + '\n' : '')
       + '  Align every design decision with these site-specific goals.\n';
   }
-  return `You are AVA (Adaptive Visualization Assistant), an AI landscape architect by Think! Design and Planning, LLC, designing in the style of Bjarke Ingels Group (BIG) — bold, geometric, progressive architecture that is simultaneously ecologically sensitive and sustainable.
-CAMERA: MAINTAIN EXACT SAME camera angle, position, perspective, and field of view as the input photo. Do NOT change buildings, sky, background skyline, or surrounding architecture. BUILDINGS MUST REMAIN IDENTICAL. The scene must be INSTANTLY RECOGNIZABLE as the same location. Only modify the GROUND PLANE and VERTICAL SURFACES. NEVER reshape, resize, or reposition any building.
+  const isParcel = config.id?.startsWith('parcel_');
+  const sitesBlock = isParcel ? SITES_CREDIT_BRIEF : '';
+  const siteData = isParcel
+    ? `${config.name}, ${config.metrics.totalAreaAcres} acres, ${config.metrics.soilType} soil${config.metrics.landUse ? `, current use: ${config.metrics.landUse}` : ''}${config.metrics.zone ? `, zoned ${config.metrics.zone}` : ''}.`
+    : `${config.name}, ${config.metrics.totalAreaAcres} acres, ${config.metrics.soilType} soil, ${config.metrics.elevationDrop}ft elevation drop.`;
+  return `You are AVA (Adaptive Visualization Assistant), an expert AI landscape architect by Think! Design and Planning, LLC. Design in the style of Bjarke Ingels Group (BIG) — bold, geometric, ecologically sensitive, and deeply sustainable. Every design decision must simultaneously serve human health, ecological function, and visual spectacle.
+CAMERA: MAINTAIN EXACT SAME camera angle, position, perspective, and field of view as the input photo. BUILDINGS MUST REMAIN IDENTICAL. Only modify GROUND PLANE and VERTICAL SURFACES. Do NOT reshape, resize, or reposition any building.
 SITE CONTEXT: ${config.siteContext || config.name}
-SITE DATA: ${config.name}, ${config.metrics.totalAreaAcres} acres, ${config.metrics.soilType} soil, ${config.metrics.elevationDrop}ft elevation drop.
-${goalsBlock}DESIGN PHILOSOPHY: Bjarke Ingels-inspired — hedonistic sustainability. Every design element should be BOTH ecologically functional AND visually spectacular. Only add the specific elements the user requests — do NOT add extra planting, rain gardens, or vegetation beyond what is explicitly asked for.
-LANDSCAPE RULES: When the user asks for planting, use companion planting guilds appropriate for USDA Zone 7b Piedmont NC. When planting IS requested, use biodiverse polyculture layers. Do NOT automatically add planting to areas the user did not mention.
-STYLE: ULTRA HIGH RESOLUTION 8K, TACK-SHARP professional landscape architecture visualization. Golden-hour sunlight, brilliant blue sky with soft white cumulus clouds, warm dappled light. Rich saturated colors. Think award-winning landscape photography — luminous, inviting, breathtaking.
-PEOPLE (MANDATORY — HIGHEST PRIORITY FOR SHARPNESS): Include 3-5 diverse people rendered at MAXIMUM CLARITY. FACES MUST BE CRYSTAL CLEAR — distinct eyes, nose, mouth, jawline with NO smudging, NO blur, NO painterly softness. Render faces at PORTRAIT-QUALITY sharpness with proper lighting on skin. Candid, joyful outdoor life. People are the MOST IMPORTANT element to get right.
-VEGETATION: All plants species-accurate for USDA Zone 7b Piedmont NC. Lush, healthy, VIBRANT.
-BUILDING WINDOWS (CRITICAL): Preserve the EXACT LOCATION of every window. Vegetation grows ONLY on solid wall surfaces BETWEEN windows.
-DESIGN LAYERING: Harmonious layered compositions. Every seating area should have overhead protection.
-IMAGE QUALITY: MAXIMUM sharpness across the ENTIRE image, especially FACES and TEXT. NO soft focus, NO gaussian blur, NO muddy areas. Prioritize face clarity over background detail.
+SITE DATA: ${siteData}
+${goalsBlock}${sitesBlock}
+DESIGN PHILOSOPHY: Hedonistic sustainability — beautiful AND functional. Every element earns SITES v2 points. Design for PLATINUM certification. Each design decision should maximize ecological performance, human wellbeing, AND visual impact simultaneously.
+LANDSCAPE RULES: Use companion planting guilds for USDA Zone 7b Piedmont NC. Layer canopy → understory → shrub → groundcover. Prioritize native species. Use biodiverse polyculture. Only add elements the user requests — do NOT add extras beyond what is asked.
+STYLE: ULTRA HIGH RESOLUTION 8K, TACK-SHARP professional landscape architecture visualization. Golden-hour sunlight, brilliant blue sky, warm dappled light. Rich saturated colors. Award-winning landscape photography — luminous, inviting, breathtaking.
+PEOPLE (MANDATORY): Include 3-5 diverse people at MAXIMUM CLARITY. FACES MUST BE CRYSTAL CLEAR — portrait-quality sharpness. Candid, joyful outdoor life.
+VEGETATION: Species-accurate for USDA Zone 7b Piedmont NC. Lush, healthy, VIBRANT.
+BUILDING WINDOWS (CRITICAL): Vegetation grows ONLY on solid wall surfaces BETWEEN windows.
+IMAGE QUALITY: MAXIMUM sharpness across entire image, especially faces. NO soft focus, NO blur.
 ${ctx}
 NEW ELEMENT TO ADD: ${userPrompt}
-${isFirst ? 'Generate a STUNNING photorealistic modification showing ONLY this specific element integrated into the existing site. Include people with clear, sharp faces. Do NOT add extra elements beyond what was requested.' : 'CRITICAL: You are working from the ORIGINAL baseline photo — the camera angle, building positions, geometry, sky, and background are LOCKED to that photo. Render ALL listed design elements as one complete, cohesive design applied to the original scene. Do NOT drift the camera, resize buildings, or shift any architectural element.'}`;
+${isFirst ? 'Generate a STUNNING photorealistic modification showing ONLY this specific element integrated into the existing site. Include people with clear, sharp faces.' : 'CRITICAL: Working from ORIGINAL baseline photo — camera angle, building positions, sky are LOCKED. Render ALL listed design elements as one cohesive design applied to the original scene.'}`;
 }
 
 async function callGeminiAPI(prompt, imageBase64, referenceImageBase64, refMimeType) {
   const models = [...new Set([state.geminiModel, 'gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash'])];
-  const payload = (model) => {
+  const payload = () => {
     const parts = [
       { text: prompt },
       { inlineData: { mimeType: 'image/png', data: imageBase64 } }
@@ -246,7 +281,7 @@ async function callGeminiAPI(prompt, imageBase64, referenceImageBase64, refMimeT
         try {
           resp = await fetch('/.netlify/functions/gemini-proxy', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model, payload: payload(model) })
+            body: JSON.stringify({ model, payload: payload() })
           });
         } catch (proxyErr) { resp = null; }
       }
@@ -284,10 +319,78 @@ async function imageToBase64(src) {
 }
 
 // ---------------------------------------------------------------------------
+// Aerial Vision Analysis — Gemini reads the satellite image for site baseline
+// ---------------------------------------------------------------------------
+async function analyzeParcelAerial(config) {
+  if (!config.baselineImage) return null;
+  try {
+    const imageBase64 = await imageToBase64(config.baselineImage);
+    const acres = config.metrics?.totalAreaAcres || '?';
+    const soil  = config.metrics?.soilType || 'unknown';
+    const use   = config.metrics?.landUse ? `, current use: ${config.metrics.landUse}` : '';
+    const zone  = config.metrics?.zone    ? `, zoned ${config.metrics.zone}` : '';
+
+    const prompt = `You are an expert landscape architect performing an existing conditions analysis for SITES v2 certification.
+
+Analyze this satellite aerial image of ${config.name} (${acres} acres, ${soil} soil${use}${zone}).
+
+Provide a professional site analysis in this exact structure:
+
+**Existing Conditions Analysis**
+• **Impervious surface:** estimate % of site that is pavement, rooftop, or hardscape
+• **Tree canopy:** estimate % canopy coverage
+• **Open / green space:** brief character description
+• **Key observations:** 2-3 site-specific observations about drainage, topography, adjacencies, or condition
+
+**Top 3 Sustainable Design Opportunities**
+1. [Most impactful opportunity given site conditions]
+2. [Second opportunity]
+3. [Third opportunity]
+
+**SITES v2 Estimated Baseline Score: [X]/200**
+Brief rationale (1–2 sentences) for the estimate.
+
+Keep total response under 200 words. Use landscape architecture terminology.`;
+
+    const payload = {
+      contents: [{ parts: [
+        { text: prompt },
+        { inlineData: { mimeType: 'image/jpeg', data: imageBase64 } }
+      ]}],
+      generationConfig: { responseModalities: ['TEXT'] }
+    };
+
+    const isLocal = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    for (const model of ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash']) {
+      try {
+        let resp;
+        if (!isLocal) {
+          try {
+            resp = await fetch('/.netlify/functions/gemini-proxy', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model, payload })
+            });
+          } catch (_) { resp = null; }
+        }
+        if (!resp?.ok && state.geminiKey) {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.geminiKey}`;
+          resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        }
+        if (!resp?.ok) continue;
+        const data = await resp.json();
+        const text = data.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
+        if (text) return text;
+      } catch (_) { continue; }
+    }
+  } catch (_) {}
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Plan View Capture — listen for overhead parcel screenshot from GEO_LAYERS
 // ---------------------------------------------------------------------------
 document.addEventListener('ava:planViewCapture', async (evt) => {
-  const { imageDataUrl, parcel, soils, area, address, siteId } = evt.detail || {};
+  const { imageDataUrl, soils, area, address, siteId } = evt.detail || {};
 
   // Build enriched prompt from parcel context (works with or without a screenshot)
   const soilLine = soils   ? `Soil: ${soils}.` : '';
@@ -341,4 +444,4 @@ document.addEventListener('ava:planViewCapture', async (evt) => {
   }
 });
 
-window.DESIGN_ENGINE={scoreSITESv2,getTier,getBoostPrompt,getAutoDesignPrompt,buildGeminiPrompt,callGeminiAPI,imageToBase64,computePenalties,getScoringReasons};
+window.DESIGN_ENGINE={scoreSITESv2,getTier,getBoostPrompt,getAutoDesignPrompt,buildGeminiPrompt,callGeminiAPI,imageToBase64,computePenalties,getScoringReasons,analyzeParcelAerial};

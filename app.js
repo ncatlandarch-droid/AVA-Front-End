@@ -185,6 +185,59 @@ function openDesignSheet(siteId) {
   const chat = document.getElementById('avaChatMessages');
   chat.innerHTML = '';
   addChatMessage('ava', `Welcome to ${config.name}! ${config.history.summary} Tell me what you'd like to design, or click ✨ Auto-Design.`, true);
+
+  // Render parcel boundary overlay (GM parcels only)
+  renderParcelOverlay(config);
+
+  // Trigger aerial vision analysis for parcel-type sites
+  if (siteId.startsWith('parcel_') && config.baselineImage && window.DESIGN_ENGINE?.analyzeParcelAerial) {
+    addChatMessage('ava', 'Reading your site from the aerial…', false);
+    DESIGN_ENGINE.analyzeParcelAerial(config).then(analysis => {
+      if (analysis) {
+        const msgs = document.getElementById('avaChatMessages');
+        // Replace the "Reading…" placeholder with the real analysis
+        const placeholder = msgs.querySelector('.chat-msg.ava:last-child');
+        if (placeholder && placeholder.textContent.includes('Reading your site')) {
+          placeholder.innerHTML = analysis.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        } else {
+          addChatMessage('ava', analysis, false);
+        }
+      }
+    }).catch(() => {});
+  }
+}
+
+function renderParcelOverlay(config) {
+  const viewport = document.getElementById('baselineView');
+  // Remove any previous overlay
+  viewport.querySelectorAll('.parcel-svg-overlay').forEach(el => el.remove());
+  if (!config.parcelRing?.length || !config.imageBounds) return;
+
+  const { s, w, n, e } = config.imageBounds;
+  const latRange = n - s;
+  const lngRange = e - w;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('parcel-svg-overlay');
+  svg.setAttribute('viewBox', '0 0 800 600');
+  svg.setAttribute('preserveAspectRatio', 'none');
+
+  const points = config.parcelRing.map(pt => {
+    const x = ((pt.lng - w) / lngRange * 800).toFixed(1);
+    const y = ((n - pt.lat) / latRange * 600).toFixed(1);
+    return `${x},${y}`;
+  }).join(' ');
+
+  const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  poly.setAttribute('points', points);
+  poly.setAttribute('fill', 'rgba(253,185,39,0.10)');
+  poly.setAttribute('stroke', '#FDB927');
+  poly.setAttribute('stroke-width', '4');
+  poly.setAttribute('stroke-dasharray', '10,5');
+  poly.setAttribute('stroke-linejoin', 'round');
+
+  svg.appendChild(poly);
+  viewport.appendChild(svg);
 }
 
 function closeDesignSheet() {
@@ -336,27 +389,103 @@ function getAutoDesignPrompt() { return DESIGN_ENGINE.getAutoDesignPrompt(); }
 function imageToBase64(s) { return DESIGN_ENGINE.imageToBase64(s); }
 
 
+// ========== METRICS SYSTEMS ==========
+const METRICS_SYSTEMS = {
+  sites: {
+    label: 'SITES v2', max: 200,
+    tiers: { certified: 70, silver: 85, gold: 100, platinum: 135 },
+    tierLabels: { none: 'Pre-Certification', certified: 'Certified', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' },
+    sections: null, // uses SITE_CONFIGS sections
+  },
+  leed: {
+    label: 'LEED ND', max: 110,
+    tiers: { certified: 40, silver: 50, gold: 60, platinum: 80 },
+    tierLabels: { none: 'Not Certified', certified: 'Certified', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' },
+    sections: [
+      { id: 'lnd', name: 'Smart Location & Linkage', maxPts: 27 },
+      { id: 'npd', name: 'Neighborhood Pattern & Design', maxPts: 44 },
+      { id: 'gib', name: 'Green Infrastructure & Buildings', maxPts: 29 },
+      { id: 'inn', name: 'Innovation & Design Process', maxPts: 6 },
+      { id: 'rpc', name: 'Regional Priority Credits', maxPts: 4 },
+    ],
+  },
+  lbc: {
+    label: 'Living Building Challenge', max: 7,
+    tiers: { certified: 7, silver: 5, gold: 6, platinum: 7 },
+    tierLabels: { none: 'Not Certified', certified: 'Petal Certified', silver: '3-Petal', gold: '5-Petal', platinum: 'Full Living' },
+    sections: [
+      { id: 'place',    name: 'Place',         maxPts: 1 },
+      { id: 'water',    name: 'Water',         maxPts: 1 },
+      { id: 'energy',   name: 'Energy',        maxPts: 1 },
+      { id: 'health',   name: 'Health & Happiness', maxPts: 1 },
+      { id: 'material', name: 'Materials',     maxPts: 1 },
+      { id: 'equity',   name: 'Equity',        maxPts: 1 },
+      { id: 'beauty',   name: 'Beauty',        maxPts: 1 },
+    ],
+  },
+  carbon: {
+    label: 'Carbon Budget', max: 100,
+    tiers: { certified: 25, silver: 50, gold: 75, platinum: 90 },
+    tierLabels: { none: 'Carbon Positive', certified: 'Carbon Neutral', silver: 'Carbon Negative', gold: 'Net-Zero', platinum: 'Carbon Sink' },
+    sections: [
+      { id: 'seq',   name: 'Carbon Sequestration (trees + soil)', maxPts: 40 },
+      { id: 'solar', name: 'Renewable Energy Offset',              maxPts: 25 },
+      { id: 'mat',   name: 'Embodied Carbon (materials)',          maxPts: 20 },
+      { id: 'ops',   name: 'Operational Carbon (irrigation/lighting)', maxPts: 15 },
+    ],
+  },
+};
+
+state.activeMetrics = 'sites';
+
+function switchMetrics(systemKey) {
+  if (!METRICS_SYSTEMS[systemKey]) return;
+  state.activeMetrics = systemKey;
+  // Update toggle button states
+  document.querySelectorAll('.metrics-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.metrics === systemKey);
+  });
+  // Re-render score panel under new system
+  initScorePanel();
+  // Show a brief info toast
+  const sys = METRICS_SYSTEMS[systemKey];
+  if (typeof _toast === 'function') _toast(`Switched to ${sys.label} (${sys.max} pts max)`, 'info');
+}
+
 // ========== UI HELPERS ==========
 function initScorePanel() {
   const config = SITE_CONFIGS[state.activeSite];
   if (!config) return;
-  // Clear feedback from previous session
   const feedbackEl = document.getElementById('scoreFeedback');
   if (feedbackEl) { feedbackEl.innerHTML = ''; feedbackEl.style.display = 'none'; }
-  // Pre-fill assumed section scores, zeros for design sections
-  const sections = config.sections || [];
+
+  const sys = METRICS_SYSTEMS[state.activeMetrics || 'sites'];
+
+  // Sections: use the active metrics system's override, or fall back to SITE_CONFIGS sections
+  const sections = sys.sections || config.sections || [];
   state.sectionScores = sections.map(s => s.assumed ? (s.assumedPts || 0) : 0);
   const assumedTotal = state.sectionScores.reduce((a, b) => a + b, 0);
   const baselineScore = Math.max(config.baselineScore || 0, assumedTotal);
   state.currentScore = baselineScore;
+
+  const maxTotal = sys.max || sections.reduce((sum, s) => sum + (s.maxPts || 0), 0) || 200;
   document.getElementById('scoreValue').textContent = baselineScore.toString();
-  const maxTotal = sections.reduce((sum, s) => sum + (s.maxPts || 0), 0) || 200;
+  document.querySelector('.score-ring-max').textContent = `/${maxTotal}`;
   const offset = 326.73 - (baselineScore / maxTotal) * 326.73;
   document.getElementById('scoreRingProgress').style.strokeDashoffset = offset.toString();
-  const tier = DESIGN_ENGINE.getTier(baselineScore);
-  document.getElementById('tierBadge').textContent = tier === 'none' ? 'Pre-Certification' : tier.charAt(0).toUpperCase() + tier.slice(1);
+
+  // Tier logic using active metrics thresholds
+  const t = sys.tiers;
+  let tier = 'none';
+  if (baselineScore >= t.platinum) tier = 'platinum';
+  else if (baselineScore >= t.gold)     tier = 'gold';
+  else if (baselineScore >= t.silver)   tier = 'silver';
+  else if (baselineScore >= t.certified) tier = 'certified';
+  const tierLabel = sys.tierLabels?.[tier] || (tier === 'none' ? 'Pre-Certification' : tier.charAt(0).toUpperCase() + tier.slice(1));
+  document.getElementById('tierBadge').textContent = tierLabel;
   document.getElementById('tierBadge').className = `tier-badge ${tier}`;
   updateTierMedal(tier);
+
   const container = document.getElementById('sectionScores');
   container.innerHTML = sections.map((s, i) => {
     const pts = state.sectionScores[i];
@@ -368,6 +497,11 @@ function initScorePanel() {
       <span class="section-score-pts" id="pts-${s.id}">${pts}/${s.maxPts}</span>
     </div>`;
   }).join('');
+
+  // Update metrics toggle active state to match current system
+  document.querySelectorAll('.metrics-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.metrics === (state.activeMetrics || 'sites'));
+  });
 }
 
 const TIER_MEDAL_MAP = {
