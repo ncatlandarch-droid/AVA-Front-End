@@ -600,11 +600,24 @@ window.GEO_LAYERS = (() => {
           const w = (sw.lng() - lngPad).toFixed(7);
           const n = (ne.lat() + latPad).toFixed(7);
           const e = (ne.lng() + lngPad).toFixed(7);
-          baselineImage = `https://maps.googleapis.com/maps/api/staticmap?visible=${s},${w}|${n},${e}&size=800x600&maptype=satellite&key=${_mapsKey}`;
-          imageBounds = { s: parseFloat(s), w: parseFloat(w), n: parseFloat(n), e: parseFloat(e) };
-          // Collect polygon ring for SVG overlay
+          // Collect polygon ring for overlay
           parcelRing = [];
           geom.getArray()[0].getArray().forEach(pt => parcelRing.push({ lat: pt.lat(), lng: pt.lng() }));
+          imageBounds = { s: parseFloat(s), w: parseFloat(w), n: parseFloat(n), e: parseFloat(e) };
+
+          // Bake parcel boundary onto the image using Static Maps path parameter
+          let ring = parcelRing;
+          if (ring.length > 100) {
+            const step = Math.ceil(ring.length / 100);
+            ring = ring.filter((_, i) => i % step === 0);
+          }
+          // Close the polygon
+          if (ring.length && (ring[0].lat !== ring[ring.length-1].lat || ring[0].lng !== ring[ring.length-1].lng)) {
+            ring = [...ring, ring[0]];
+          }
+          const pathCoords = ring.map(p => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`).join('|');
+          const pathParam = `&path=color:0xFDB927FF|weight:3|fillcolor:0xFDB92722|${pathCoords}`;
+          baselineImage = `https://maps.googleapis.com/maps/api/staticmap?visible=${s},${w}|${n},${e}&size=800x600&scale=2&maptype=satellite${pathParam}&key=${_mapsKey}`;
         } else {
           baselineImage = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=800x600&maptype=satellite&key=${_mapsKey}`;
         }

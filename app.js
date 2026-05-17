@@ -186,30 +186,37 @@ function openDesignSheet(siteId) {
   chat.innerHTML = '';
   addChatMessage('ava', `Welcome to ${config.name}! ${config.history.summary} Tell me what you'd like to design, or click ✨ Auto-Design.`, true);
 
-  // Render parcel boundary overlay (GM parcels only)
+  // Render parcel boundary SVG overlay on the designed view (baseline has it baked in)
   renderParcelOverlay(config);
 
   // Trigger aerial vision analysis for parcel-type sites
   if (siteId.startsWith('parcel_') && config.baselineImage && window.DESIGN_ENGINE?.analyzeParcelAerial) {
     addChatMessage('ava', 'Reading your site from the aerial…', false);
-    DESIGN_ENGINE.analyzeParcelAerial(config).then(analysis => {
-      if (analysis) {
-        const msgs = document.getElementById('avaChatMessages');
-        // Replace the "Reading…" placeholder with the real analysis
-        const placeholder = msgs.querySelector('.chat-msg.ava:last-child');
-        if (placeholder && placeholder.textContent.includes('Reading your site')) {
-          placeholder.innerHTML = analysis.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-        } else {
-          addChatMessage('ava', analysis, false);
-        }
+    DESIGN_ENGINE.analyzeParcelAerial(config).then(result => {
+      if (!result) return;
+      const { text, baselines } = result;
+      const msgs = document.getElementById('avaChatMessages');
+      // Replace the "Reading…" placeholder with the real analysis
+      const placeholder = msgs.querySelector('.chat-msg.ava:last-child');
+      const html = (text || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+      if (placeholder && placeholder.textContent.includes('Reading your site')) {
+        placeholder.innerHTML = html;
+      } else {
+        addChatMessage('ava', text || '', false);
+      }
+      // Apply baseline scores to all metrics systems and refresh score panel
+      if (baselines) {
+        config.metricsBaselines = baselines;
+        config.baselineScore = baselines.sites || 0;
+        initScorePanel();
       }
     }).catch(() => {});
   }
 }
 
 function renderParcelOverlay(config) {
-  const viewport = document.getElementById('baselineView');
-  // Remove any previous overlay
+  // Place overlay on the designed (before/after) view — baseline has boundary baked in
+  const viewport = document.getElementById('beforeAfterView');
   viewport.querySelectorAll('.parcel-svg-overlay').forEach(el => el.remove());
   if (!config.parcelRing?.length || !config.imageBounds) return;
 
@@ -465,7 +472,12 @@ function initScorePanel() {
   const sections = sys.sections || config.sections || [];
   state.sectionScores = sections.map(s => s.assumed ? (s.assumedPts || 0) : 0);
   const assumedTotal = state.sectionScores.reduce((a, b) => a + b, 0);
-  const baselineScore = Math.max(config.baselineScore || 0, assumedTotal);
+  // Use per-metrics aerial baseline if available, otherwise fall back to config.baselineScore
+  const activeKey = state.activeMetrics || 'sites';
+  const aerialBaseline = config.metricsBaselines?.[activeKey] ?? null;
+  const baselineScore = aerialBaseline !== null
+    ? Math.max(aerialBaseline, assumedTotal)
+    : Math.max(config.baselineScore || 0, assumedTotal);
   state.currentScore = baselineScore;
 
   const maxTotal = sys.max || sections.reduce((sum, s) => sum + (s.maxPts || 0), 0) || 200;

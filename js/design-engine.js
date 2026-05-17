@@ -290,7 +290,7 @@ async function callGeminiAPI(prompt, imageBase64, referenceImageBase64, refMimeT
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.geminiKey}`;
         resp = await fetch(url, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload(model))
+          body: JSON.stringify(payload())
         });
       }
       if (!resp.ok) { const e = await resp.json().catch(()=>({})); lastError = new Error(e?.error?.message || `${resp.status}`); if (resp.status===404) continue; throw lastError; }
@@ -330,7 +330,7 @@ async function analyzeParcelAerial(config) {
     const use   = config.metrics?.landUse ? `, current use: ${config.metrics.landUse}` : '';
     const zone  = config.metrics?.zone    ? `, zoned ${config.metrics.zone}` : '';
 
-    const prompt = `You are an expert landscape architect performing an existing conditions analysis for SITES v2 certification.
+    const prompt = `You are an expert landscape architect and sustainability consultant performing an existing conditions analysis.
 
 Analyze this satellite aerial image of ${config.name} (${acres} acres, ${soil} soil${use}${zone}).
 
@@ -338,19 +338,22 @@ Provide a professional site analysis in this exact structure:
 
 **Existing Conditions Analysis**
 • **Impervious surface:** estimate % of site that is pavement, rooftop, or hardscape
-• **Tree canopy:** estimate % canopy coverage
-• **Open / green space:** brief character description
-• **Key observations:** 2-3 site-specific observations about drainage, topography, adjacencies, or condition
+• **Tree canopy:** estimate % canopy coverage visible
+• **Open / green space:** brief character and condition description
+• **Key observations:** 2-3 site-specific notes about drainage, topography, adjacencies, or existing infrastructure
 
 **Top 3 Sustainable Design Opportunities**
-1. [Most impactful opportunity given site conditions]
+1. [Most impactful opportunity given existing conditions]
 2. [Second opportunity]
 3. [Third opportunity]
 
-**SITES v2 Estimated Baseline Score: [X]/200**
-Brief rationale (1–2 sentences) for the estimate.
+Keep analysis to ~150 words. Use landscape architecture terminology.
 
-Keep total response under 200 words. Use landscape architecture terminology.`;
+Then end your response with EXACTLY these 4 lines (integers only, no ranges):
+SITES_V2_BASELINE: [0-200]
+LEED_ND_BASELINE: [0-110]
+LBC_BASELINE: [0-7]
+CARBON_BASELINE: [0-100]`;
 
     const payload = {
       contents: [{ parts: [
@@ -378,8 +381,23 @@ Keep total response under 200 words. Use landscape architecture terminology.`;
         }
         if (!resp?.ok) continue;
         const data = await resp.json();
-        const text = data.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
-        if (text) return text;
+        const raw = data.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
+        if (!raw) continue;
+        // Parse structured baseline scores
+        const parse = (key, max) => {
+          const m = raw.match(new RegExp(`${key}:\\s*(\\d+)`));
+          const v = m ? parseInt(m[1]) : 0;
+          return Math.min(v, max);
+        };
+        const baselines = {
+          sites:  parse('SITES_V2_BASELINE',  200),
+          leed:   parse('LEED_ND_BASELINE',   110),
+          lbc:    parse('LBC_BASELINE',         7),
+          carbon: parse('CARBON_BASELINE',     100),
+        };
+        // Strip the structured lines from the display text
+        const displayText = raw.replace(/\n?[A-Z_]+_BASELINE:.*$/gm, '').trim();
+        return { text: displayText, baselines };
       } catch (_) { continue; }
     }
   } catch (_) {}
