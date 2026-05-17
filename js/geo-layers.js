@@ -586,13 +586,19 @@ window.GEO_LAYERS = (() => {
       const soilLine = soilDesc ? `Primary soil: ${soilDesc}.` : '';
       const areaLine = acresNum ? `${acresNum} acres.` : '';
 
-      // Satellite thumbnail: use visible bounds so the full parcel fits in frame
+      // Satellite thumbnail: expand bounds 20% so parcel isn't flush to edge
       let baselineImage = '';
       if (_mapsKey) {
         if (_parcBounds) {
           const sw = _parcBounds.getSouthWest();
           const ne = _parcBounds.getNorthEast();
-          baselineImage = `https://maps.googleapis.com/maps/api/staticmap?visible=${sw.lat()},${sw.lng()}|${ne.lat()},${ne.lng()}&size=800x600&maptype=satellite&key=${_mapsKey}`;
+          const latPad = (ne.lat() - sw.lat()) * 0.20;
+          const lngPad = (ne.lng() - sw.lng()) * 0.20;
+          const s = (sw.lat() - latPad).toFixed(7);
+          const w = (sw.lng() - lngPad).toFixed(7);
+          const n = (ne.lat() + latPad).toFixed(7);
+          const e = (ne.lng() + lngPad).toFixed(7);
+          baselineImage = `https://maps.googleapis.com/maps/api/staticmap?visible=${s},${w}|${n},${e}&size=800x600&maptype=satellite&key=${_mapsKey}`;
         } else {
           baselineImage = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=800x600&maptype=satellite&key=${_mapsKey}`;
         }
