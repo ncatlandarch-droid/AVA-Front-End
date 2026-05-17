@@ -518,6 +518,27 @@ function imageToBase64(s) { return DESIGN_ENGINE.imageToBase64(s); }
 function callGeminiTextOnly(p, i) { return DESIGN_ENGINE.callGeminiTextOnly(p, i); }
 function buildPlanViewPrompt(p) { return DESIGN_ENGINE.buildPlanViewPrompt(p); }
 
+// Called by DESIGN_CANVAS whenever an element is manually placed/deleted
+window._onCanvasElementAdded = function () {
+  const config = SITE_CONFIGS[state.activeSite];
+  if (!config) return;
+  const sys = METRICS_SYSTEMS[state.activeMetrics || 'sites'];
+  const sections = sys.sections || (config.sections?.length ? config.sections : (sys.parcelSections || []));
+  const elements = window.DESIGN_CANVAS?.elements || [];
+  const fullPrompt = state.cumulativePrompts.join('. ');
+  const scores = scoreParcelDesign(elements, sections, fullPrompt);
+  const oldScores = [...(state.sectionScores || new Array(scores.length).fill(0))];
+  const finalScores = scores.map((s, i) => Math.max(s, oldScores[i] || 0));
+  const totalScore = finalScores.reduce((a, b) => a + b, 0);
+  state.sectionScores = finalScores;
+  state.currentScore = totalScore;
+  sessionStorage.setItem(`ava_score_${state.activeSite}`, totalScore);
+  updateScoreboard();
+  const newTier = DESIGN_ENGINE.getTier(totalScore);
+  if (newTier !== state.currentTier) { state.currentTier = newTier; celebrateTier(newTier); }
+  updateScoreDisplay(totalScore, finalScores);
+};
+
 
 // ========== METRICS SYSTEMS ==========
 const METRICS_SYSTEMS = {

@@ -271,6 +271,48 @@
             <span class="cost-badge-caret material-symbols-outlined">chevron_right</span>
           </div>
         </div>
+        <!-- Draw Toolbar (Plan View only) -->
+        <div class="draw-toolbar" id="drawToolbar" style="display:none">
+          <div class="draw-tool-section">
+            <button class="draw-tool-btn active" data-type="select" onclick="DESIGN_CANVAS.setDrawMode('select')" title="Select / Move">
+              <span class="material-symbols-outlined">arrow_selector_tool</span><span>Select</span>
+            </button>
+          </div>
+          <div class="draw-tool-divider"></div>
+          <div class="draw-tool-section-label">POINT</div>
+          <div class="draw-tool-section">
+            <button class="draw-tool-btn" data-type="tree"        onclick="DESIGN_CANVAS.setDrawMode('tree')"        title="Click to place tree"><span class="draw-tool-swatch" style="background:#2E882E"></span>Tree</button>
+            <button class="draw-tool-btn" data-type="shrub"       onclick="DESIGN_CANVAS.setDrawMode('shrub')"       title="Click to place shrub"><span class="draw-tool-swatch" style="background:#3D7A3D"></span>Shrub</button>
+            <button class="draw-tool-btn" data-type="rain_garden" onclick="DESIGN_CANVAS.setDrawMode('rain_garden')" title="Click to place rain garden"><span class="draw-tool-swatch" style="background:#1255A0"></span>Rain Gdn</button>
+            <button class="draw-tool-btn" data-type="seating"     onclick="DESIGN_CANVAS.setDrawMode('seating')"     title="Click to place seating"><span class="draw-tool-swatch" style="background:#5D4037"></span>Seating</button>
+            <button class="draw-tool-btn" data-type="cistern"     onclick="DESIGN_CANVAS.setDrawMode('cistern')"     title="Click to place cistern"><span class="draw-tool-swatch" style="background:#0D47A1"></span>Cistern</button>
+            <button class="draw-tool-btn" data-type="signage"     onclick="DESIGN_CANVAS.setDrawMode('signage')"     title="Click to place signage"><span class="draw-tool-swatch" style="background:#37474F"></span>Signage</button>
+          </div>
+          <div class="draw-tool-divider"></div>
+          <div class="draw-tool-section-label">LINE</div>
+          <div class="draw-tool-section">
+            <button class="draw-tool-btn" data-type="path"     onclick="DESIGN_CANVAS.setDrawMode('path')"     title="Click points · dbl-click to finish"><span class="draw-tool-swatch" style="background:#8D6030"></span>Path</button>
+            <button class="draw-tool-btn" data-type="bioswale" onclick="DESIGN_CANVAS.setDrawMode('bioswale')" title="Click points · dbl-click to finish"><span class="draw-tool-swatch" style="background:#1976D2"></span>Bioswale</button>
+          </div>
+          <div class="draw-tool-divider"></div>
+          <div class="draw-tool-section-label">AREA</div>
+          <div class="draw-tool-section">
+            <button class="draw-tool-btn" data-type="meadow"      onclick="DESIGN_CANVAS.setDrawMode('meadow')"      title="Click corners · dbl-click to close"><span class="draw-tool-swatch" style="background:#7A9B3A"></span>Meadow</button>
+            <button class="draw-tool-btn" data-type="plaza"       onclick="DESIGN_CANVAS.setDrawMode('plaza')"       title="Click corners · dbl-click to close"><span class="draw-tool-swatch" style="background:#9C7A3A"></span>Plaza</button>
+            <button class="draw-tool-btn" data-type="water"       onclick="DESIGN_CANVAS.setDrawMode('water')"       title="Click corners · dbl-click to close"><span class="draw-tool-swatch" style="background:#0277BD"></span>Water</button>
+            <button class="draw-tool-btn" data-type="solar"       onclick="DESIGN_CANVAS.setDrawMode('solar')"       title="Click corners · dbl-click to close"><span class="draw-tool-swatch" style="background:#B8940A"></span>Solar</button>
+            <button class="draw-tool-btn" data-type="green_roof"  onclick="DESIGN_CANVAS.setDrawMode('green_roof')"  title="Click corners · dbl-click to close"><span class="draw-tool-swatch" style="background:#2E6B0E"></span>Grn Roof</button>
+            <button class="draw-tool-btn" data-type="amphitheater" onclick="DESIGN_CANVAS.setDrawMode('amphitheater')" title="Click corners · dbl-click to close"><span class="draw-tool-swatch" style="background:#6D4C1F"></span>Amphith.</button>
+          </div>
+          <div class="draw-tool-divider"></div>
+          <div class="draw-tool-section">
+            <button class="draw-tool-btn draw-tool-delete" id="btnDrawDelete" onclick="DESIGN_CANVAS.deleteSelected()" title="Delete selected element (or press Delete key)" style="opacity:0.4">
+              <span class="material-symbols-outlined">delete</span><span>Delete</span>
+            </button>
+          </div>
+          <div class="draw-tool-hint">ESC cancel · Del remove</div>
+        </div>
+
         <!-- Canvas Actions -->
         <div class="canvas-actions" id="canvasActions" style="display:none">
           <button onclick="undoDesign()" class="undo-btn" id="btnUndo" style="display:none"><span class="material-symbols-outlined">undo</span> Undo</button>
