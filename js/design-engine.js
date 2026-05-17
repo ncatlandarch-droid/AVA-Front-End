@@ -389,46 +389,64 @@ function buildPlanViewPrompt(userPrompt) {
   const config = SITE_CONFIGS[state.activeSite];
   const bounds = config.imageBounds;
   const m = config.metrics || {};
-  const existing = window.DESIGN_CANVAS?.elements?.length
-    ? `\nEXISTING CANVAS ELEMENTS: ${DESIGN_CANVAS.getSummary()}. Add complementary elements — do not duplicate positions.`
+
+  // Build a 3×3 grid of real coordinates inside the parcel
+  const s = bounds.s, n = bounds.n, w = bounds.w, e = bounds.e;
+  const dLat = n - s, dLng = e - w;
+  const g = (r, c) => ({ lat: (s + dLat * r).toFixed(6), lng: (w + dLng * c).toFixed(6) });
+  // 9 anchor points at 20/50/80% across the parcel
+  const p = [
+    g(0.8,0.2), g(0.8,0.5), g(0.8,0.8),
+    g(0.5,0.2), g(0.5,0.5), g(0.5,0.8),
+    g(0.2,0.2), g(0.2,0.5), g(0.2,0.8),
+  ];
+
+  // Parcel ring for exact boundary awareness
+  const ringBlock = config.parcelRing?.length
+    ? `\nACTUAL PARCEL POLYGON — design ONLY inside this ring:\n[${config.parcelRing.map(pt => `[${pt.lat.toFixed(6)},${pt.lng.toFixed(6)}]`).join(',')}]`
     : '';
-  const midLat = ((bounds.n + bounds.s) / 2).toFixed(5);
-  const midLng = ((bounds.e + bounds.w) / 2).toFixed(5);
+
+  const existing = window.DESIGN_CANVAS?.elements?.length
+    ? `\nEXISTING ELEMENTS ON CANVAS: ${DESIGN_CANVAS.getSummary()}. Add complementary elements — avoid duplicating positions.`
+    : '';
 
   return `You are AVA, an expert landscape architect at Think! Design and Planning, LLC.
 Design a sustainable landscape master plan for ${config.name}.
 Site: ${m.totalAreaAcres || '?'} acres, ${m.soilType || 'unknown'} soil${m.landUse ? `, current use: ${m.landUse}` : ''}${m.zone ? `, zoned ${m.zone}` : ''}.
-Climate: USDA Zone 7b, Piedmont NC.
+Climate: USDA Zone 7b, Piedmont NC. Use native Piedmont plant palette.
 
 ${SITES_CREDIT_BRIEF}
 
 DESIGN REQUEST: ${userPrompt}
-Target SITES v2 Platinum (≥135 pts, max 200). Maximize ecological performance, stormwater management, human health, and biodiversity.${existing}
+Target SITES v2 Platinum (≥135 pts, max 200).${existing}
 
-PARCEL BOUNDS — ALL coordinates must fall strictly within:
-N=${bounds.n.toFixed(5)}, S=${bounds.s.toFixed(5)}, E=${bounds.e.toFixed(5)}, W=${bounds.w.toFixed(5)}
-Center: lat=${midLat}, lng=${midLng}
+COORDINATE RULES — CRITICAL:
+• Bounding box: N=${n.toFixed(6)}, S=${s.toFixed(6)}, E=${e.toFixed(6)}, W=${w.toFixed(6)}
+• Every single lat/lng you output MUST satisfy: ${s.toFixed(6)} ≤ lat ≤ ${n.toFixed(6)} AND ${w.toFixed(6)} ≤ lng ≤ ${e.toFixed(6)}
+• Do NOT use any coordinate outside these ranges — elements outside the parcel will be invisible${ringBlock}
 
-Write a 2–3 paragraph design concept, then output EXACTLY this block on its own line:
+VALID ANCHOR POINTS (use these as a grid — interpolate between them for other positions):
+NW=${p[0].lat},${p[0].lng}  N=${p[1].lat},${p[1].lng}  NE=${p[2].lat},${p[2].lng}
+ W=${p[3].lat},${p[3].lng}  C=${p[4].lat},${p[4].lng}   E=${p[5].lat},${p[5].lng}
+SW=${p[6].lat},${p[6].lng}  S=${p[7].lat},${p[7].lng}  SE=${p[8].lat},${p[8].lng}
+
+Write a 2–3 paragraph design concept. Then output EXACTLY this line:
 DESIGN_ELEMENTS: [...]
 
-Include 20–30 elements covering the FULL parcel. Use a mix of types for maximum SITES coverage.
-Formats (use real coordinates inside the bounds above):
-{"type":"tree","lat":${midLat},"lng":${midLng},"radiusFt":20,"label":"Willow Oak"}
-{"type":"shrub","lat":${midLat},"lng":${midLng},"radiusFt":8,"label":"Inkberry Holly"}
-{"type":"meadow","polygon":[[${bounds.n.toFixed(5)},${bounds.w.toFixed(5)}],[${bounds.n.toFixed(5)},${bounds.e.toFixed(5)}],[${bounds.s.toFixed(5)},${bounds.e.toFixed(5)}],[${bounds.s.toFixed(5)},${bounds.w.toFixed(5)}]],"label":"Native Meadow"}
-{"type":"rain_garden","lat":${midLat},"lng":${midLng},"radiusFt":25,"label":"Bioretention Cell"}
-{"type":"bioswale","points":[[lat,lng],[lat,lng],[lat,lng]],"widthFt":8,"label":"Drainage Swale"}
-{"type":"plaza","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Gathering Plaza"}
-{"type":"path","points":[[lat,lng],[lat,lng]],"widthFt":10,"label":"Primary Walk"}
-{"type":"water","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Reflection Pool"}
-{"type":"solar","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Solar Canopy"}
-{"type":"seating","lat":${midLat},"lng":${midLng},"radiusFt":10,"label":"Seating Node"}
-{"type":"cistern","lat":${midLat},"lng":${midLng},"radiusFt":12,"label":"Stormwater Cistern"}
-{"type":"green_roof","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Green Roof"}
-{"type":"amphitheater","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Outdoor Classroom"}
-{"type":"signage","lat":${midLat},"lng":${midLng},"radiusFt":5,"label":"Interpretive Sign"}
-Spread elements across the FULL parcel. Every coordinate must be within the bounds.`;
+Include 20–30 elements spread across the FULL parcel grid. Element formats (use the anchor coordinates above — vary them slightly to spread across the site):
+{"type":"tree","lat":${p[4].lat},"lng":${p[4].lng},"radiusFt":20,"label":"Willow Oak"}
+{"type":"shrub","lat":${p[1].lat},"lng":${p[1].lng},"radiusFt":8,"label":"Inkberry Holly"}
+{"type":"rain_garden","lat":${p[3].lat},"lng":${p[3].lng},"radiusFt":25,"label":"North Bioretention"}
+{"type":"cistern","lat":${p[6].lat},"lng":${p[6].lng},"radiusFt":12,"label":"Stormwater Cistern"}
+{"type":"seating","lat":${p[7].lat},"lng":${p[7].lng},"radiusFt":10,"label":"Seating Node"}
+{"type":"signage","lat":${p[2].lat},"lng":${p[2].lng},"radiusFt":5,"label":"Interpretive Sign"}
+{"type":"path","points":[[${p[0].lat},${p[0].lng}],[${p[4].lat},${p[4].lng}],[${p[8].lat},${p[8].lng}]],"widthFt":10,"label":"Primary Walk"}
+{"type":"bioswale","points":[[${p[3].lat},${p[3].lng}],[${p[4].lat},${p[4].lng}],[${p[5].lat},${p[5].lng}]],"widthFt":8,"label":"Central Swale"}
+{"type":"meadow","polygon":[[${p[0].lat},${p[0].lng}],[${p[1].lat},${p[1].lng}],[${p[4].lat},${p[4].lng}],[${p[3].lat},${p[3].lng}]],"label":"Native Meadow"}
+{"type":"plaza","polygon":[[${p[4].lat},${p[4].lng}],[${p[5].lat},${p[5].lng}],[${p[8].lat},${p[8].lng}],[${p[7].lat},${p[7].lng}]],"label":"Gathering Plaza"}
+{"type":"solar","polygon":[[${p[1].lat},${p[1].lng}],[${p[2].lat},${p[2].lng}],[${p[5].lat},${p[5].lng}],[${p[4].lat},${p[4].lng}]],"label":"Solar Canopy"}
+{"type":"amphitheater","polygon":[[${p[6].lat},${p[6].lng}],[${p[7].lat},${p[7].lng}],[${p[4].lat},${p[4].lng}],[${p[3].lat},${p[3].lng}]],"label":"Outdoor Classroom"}
+ALL coordinates must be strictly within the bounding box. Spread elements across every quadrant of the parcel.`;
 }
 
 // ---------------------------------------------------------------------------
