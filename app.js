@@ -302,35 +302,99 @@ async function handleDesign(override) {
 
   try {
     const config = SITE_CONFIGS[state.activeSite];
-    // Always anchor to the original baseline photo so camera angle and building
-    // geometry never drift across iterations (each call regenerates from scratch).
+    const isParcel = config.id?.startsWith('parcel_');
+
     if (!state.originalBaselineBase64) {
       state.originalBaselineBase64 = await imageToBase64(config.baselineImage);
     }
     const baselineBase64 = state.originalBaselineBase64;
-    const systemPrompt = (DE.buildGeminiPrompt ? DE.buildGeminiPrompt(finalPrompt) : buildGeminiPrompt(finalPrompt));
-    const refImg = state.referenceImageBase64 || null;
-    const refMime = state.referenceImageMimeType || 'image/png';
-    const result = await (DE.callGeminiAPI ? DE.callGeminiAPI(systemPrompt, baselineBase64, refImg, refMime) : callGeminiAPI(systemPrompt, baselineBase64, refImg, refMime));
-    // Clear reference image after use (one-shot)
-    if (refImg) removeRefImage();
+
+    let result;
+    if (isParcel) {
+      // PLAN VIEW MODE: text-only Gemini → DESIGN_ELEMENTS JSON → SVG canvas
+      const planPrompt = DE.buildPlanViewPrompt ? DE.buildPlanViewPrompt(finalPrompt) : finalPrompt;
+      result = await (DE.callGeminiTextOnly ? DE.callGeminiTextOnly(planPrompt, baselineBase64) : { text: '' });
+    } else {
+      // VISUALIZATION MODE: img2img Gemini → photorealistic perspective render
+      const systemPrompt = DE.buildGeminiPrompt ? DE.buildGeminiPrompt(finalPrompt) : buildGeminiPrompt(finalPrompt);
+      const refImg = state.referenceImageBase64 || null;
+      const refMime = state.referenceImageMimeType || 'image/png';
+      result = await (DE.callGeminiAPI ? DE.callGeminiAPI(systemPrompt, baselineBase64, refImg, refMime) : callGeminiAPI(systemPrompt, baselineBase64, refImg, refMime));
+      if (refImg) removeRefImage();
+    }
     typingEl.remove();
 
-    if (result?.imageBase64) {
+    const isAutoDesign = (prompt === 'make something beautiful');
+    const _sys = METRICS_SYSTEMS[state.activeMetrics || 'sites'];
+    const activeSections = _sys.sections
+      || (config.sections?.length ? config.sections : (_sys.parcelSections || []));
+
+    if (isParcel && result?.text) {
+      // ── Plan View: render SVG canvas, score from elements ──
+      const concept = result.text.replace(/DESIGN_ELEMENTS:[\s\S]*$/, '').trim();
+      if (concept) addChatMessage('ava', concept);
+
+      const elements = window.DESIGN_CANVAS ? DESIGN_CANVAS.parseFromText(result.text) : [];
+      if (elements.length) {
+        DESIGN_CANVAS.clear();
+        DESIGN_CANVAS.show('beforeAfterView');
+        DESIGN_CANVAS.addElements(elements);
+        // Show the designed view with SVG overlay over baseline satellite
+        const beforeAfterView = document.getElementById('beforeAfterView');
+        const baselineView    = document.getElementById('baselineView');
+        if (beforeAfterView) beforeAfterView.style.display = 'block';
+        if (baselineView)    baselineView.style.display    = 'none';
+        document.getElementById('canvasActions').style.display = 'flex';
+        const renderBtn = document.getElementById('btnRenderPlan');
+        if (renderBtn) renderBtn.style.display = '';
+        // Ensure baseline satellite shows as the background image
+        const afterImg = document.getElementById('afterImg');
+        if (afterImg) afterImg.src = baselineBase64.startsWith('data:') ? baselineBase64 : `data:image/png;base64,${baselineBase64}`;
+        state.iterationCount++;
+        document.getElementById('iterationBadge').textContent = `Iteration ${state.iterationCount}`;
+        addChatMessage('ava', `✏️ Placed ${elements.length} design elements on the plan. Click <strong>Render Plan</strong> for a beautiful master plan illustration.`);
+      } else {
+        addChatMessage('ava', '⚠️ No design elements returned — try a more specific prompt.');
+      }
+
+      const fullPrompt = state.cumulativePrompts.join('. ');
+      let scores = isAutoDesign
+        ? activeSections.map(s => s.maxPts)
+        : scoreParcelDesign(elements, activeSections, fullPrompt);
+
+      const oldTier    = state.currentTier;
+      const oldScores  = [...(state.sectionScores || new Array(scores.length).fill(0))];
+      scores = scores.map((s, i) => Math.max(s, oldScores[i] || 0));
+      const totalScore = scores.reduce((a, b) => a + b, 0);
+      state.sectionScores = scores; state.currentScore = totalScore;
+      sessionStorage.setItem(`ava_score_${state.activeSite}`, totalScore);
+      updateScoreboard();
+      const newTier = DE.getTier(totalScore);
+      state.currentTier = newTier;
+      updateScoreDisplay(totalScore, scores);
+      generateMission(scores, totalScore);
+      generateScoreFeedback(oldScores, scores, totalScore, finalPrompt);
+      pushHistory();
+      if (newTier !== oldTier && newTier !== 'none') celebrateTier(newTier);
+      if (isAutoDesign) {
+        const narration = `I've laid out a comprehensive platinum-level sustainable master plan for ${config.name} — ${elements.length} design elements targeting SITES v2 Platinum at ${totalScore} out of 200 points. Click Render Plan for a beautiful illustration.`;
+        addChatMessage('ava', narration);
+        if (window.AVA_TTS) AVA_TTS.speak(narration);
+      }
+
+    } else if (result?.imageBase64) {
+      // ── Visualization Mode: display rendered image ──
       state.iterationCount++;
       document.getElementById('iterationBadge').textContent = `Iteration ${state.iterationCount}`;
-
       const beforeImg = document.getElementById('beforeImg');
-      beforeImg.src = state.originalBaselineBase64.startsWith('data:') ? state.originalBaselineBase64 : `data:image/png;base64,${state.originalBaselineBase64}`;
+      beforeImg.src = baselineBase64.startsWith('data:') ? baselineBase64 : `data:image/png;base64,${baselineBase64}`;
 
       state.workingBaselineBase64 = result.imageBase64;
-      state.generatedImageBase64 = result.imageBase64;
+      state.generatedImageBase64  = result.imageBase64;
       state.generatedImageMimeType = result.mimeType || 'image/png';
       displayGeneratedImage(result.imageBase64);
-
       addChatMessage('ava', `✅ Design updated! I added: <em>${escapeHTML(finalPrompt)}</em>`);
 
-      const isAutoDesign = (prompt === 'make something beautiful');
       if (isAutoDesign) {
         const narration = `I've created a comprehensive platinum-level sustainable design for ${config.name}. This design achieves SITES v2 Platinum certification at 200 out of 200 points!`;
         addChatMessage('ava', narration);
@@ -338,71 +402,36 @@ async function handleDesign(override) {
       }
 
       const fullPrompt = state.cumulativePrompts.join('. ');
-      let scores = (DE.scoreSITESv2 ? DE.scoreSITESv2(fullPrompt) : scoreSITESv2(fullPrompt));
+      let scores = isAutoDesign
+        ? activeSections.map(s => s.maxPts)
+        : (DE.scoreSITESv2 ? DE.scoreSITESv2(fullPrompt) : new Array(activeSections.length).fill(0));
 
-      // Auto-Design platinum override: AVA's comprehensive design earns max on all sections
-      if (isAutoDesign) {
-        scores = config.sections.map(s => s.maxPts);
-      }
-
-      const oldTier = state.currentTier;
+      const oldTier   = state.currentTier;
       const oldScores = [...(state.sectionScores || new Array(scores.length).fill(0))];
-      // Keep positive cumulative gains
-      scores = scores.map((newS, i) => Math.max(newS, oldScores[i] || 0));
-      // Apply penalties from the current prompt (allows bad choices to reduce score)
+      scores = scores.map((s, i) => Math.max(s, oldScores[i] || 0));
       if (!isAutoDesign) {
-        const penaltyDeltas = DE.computePenalties ? DE.computePenalties(finalPrompt, config) : new Array(scores.length).fill(0);
-        scores = scores.map((s, i) => Math.max(0, s - penaltyDeltas[i]));
+        const penalties = DE.computePenalties ? DE.computePenalties(finalPrompt, config) : new Array(scores.length).fill(0);
+        scores = scores.map((s, i) => Math.max(0, s - penalties[i]));
       }
-      const totalScore = scores.reduce((a,b) => a+b, 0);
+      const totalScore = scores.reduce((a, b) => a + b, 0);
       state.sectionScores = scores; state.currentScore = totalScore;
-      // Persist session score for this site so the header scoreboard reflects it
       sessionStorage.setItem(`ava_score_${state.activeSite}`, totalScore);
       updateScoreboard();
       const newTier = DE.getTier(totalScore);
       state.currentTier = newTier;
       updateScoreDisplay(totalScore, scores);
       generateMission(scores, totalScore);
-
-      // Score-change feedback — populates both chat and right panel
       generateScoreFeedback(oldScores, scores, totalScore, finalPrompt);
-
-      // P3: Push to history stack and show undo/seasonal buttons
       pushHistory();
       const seasonBtn = document.getElementById('btnSeasonal');
       if (seasonBtn) seasonBtn.style.display = '';
-
-      // Tier celebration with confetti
-      if (newTier !== oldTier && newTier !== 'none') {
-        celebrateTier(newTier);
-      }
-      // Parse and render SVG design elements from text response
+      if (newTier !== oldTier && newTier !== 'none') celebrateTier(newTier);
       if (result.text && window.DESIGN_CANVAS) {
         const elements = DESIGN_CANVAS.parseFromText(result.text);
-        if (elements.length) {
-          DESIGN_CANVAS.show('beforeAfterView');
-          DESIGN_CANVAS.addElements(elements);
-        }
+        if (elements.length) { DESIGN_CANVAS.show('beforeAfterView'); DESIGN_CANVAS.addElements(elements); }
       }
-    } else if (result?.text) {
-      typingEl.remove();
-      // Text-only response: parse design elements and show SVG canvas
-      addChatMessage('ava', result.text.replace(/DESIGN_ELEMENTS:[\s\S]*$/, '').trim());
-      if (window.DESIGN_CANVAS) {
-        const elements = DESIGN_CANVAS.parseFromText(result.text);
-        if (elements.length) {
-          DESIGN_CANVAS.show('beforeAfterView');
-          DESIGN_CANVAS.addElements(elements);
-          document.getElementById('beforeAfterView').style.display = 'block';
-          document.getElementById('baselineView').style.display = 'none';
-          document.getElementById('canvasActions').style.display = 'flex';
-          const renderBtn = document.getElementById('btnRenderPlan');
-          if (renderBtn) renderBtn.style.display = '';
-          addChatMessage('ava', `✏️ Placed ${elements.length} design elements on the canvas. Click <strong>Render Plan</strong> for a beautiful master plan visualization.`);
-        }
-      }
+
     } else {
-      typingEl.remove();
       addChatMessage('ava', '⚠️ No response from design AI. Check your API key in Settings.');
     }
   } catch (error) {
@@ -417,7 +446,6 @@ async function handleDesign(override) {
 async function renderMasterPlan() {
   const config = SITE_CONFIGS[state.activeSite];
   if (!config) return;
-  const DE = window.DESIGN_ENGINE || {};
   const summary = window.DESIGN_CANVAS ? DESIGN_CANVAS.getSummary() : '';
   if (!summary || summary === 'No design elements yet.') {
     addChatMessage('ava', 'Add some design elements first, then I can render a beautiful master plan.');
@@ -437,27 +465,45 @@ Generate a complete aerial landscape master plan rendering in this illustrative 
 
   const typingEl = addTypingIndicator();
   const btn = document.getElementById('btnRenderPlan');
-  if (btn) { btn.disabled = true; }
+  if (btn) btn.disabled = true;
+  addChatMessage('ava', '🎨 Generating master plan illustration with FLUX — this takes ~15 seconds…');
 
   try {
-    const result = await (DE.callGeminiAPI ? DE.callGeminiAPI(prompt, null, null, null) : null);
+    // Use Replicate/FLUX for high-quality plan rendering
+    const resp = await fetch('/.netlify/functions/master-plan-render', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'render-plan',
+        prompt,
+        lat: config.lat || 0,
+        lng: config.lng || 0
+      })
+    });
     typingEl.remove();
-    if (result?.imageBase64) {
-      state.generatedImageBase64 = result.imageBase64;
-      state.generatedImageMimeType = result.mimeType || 'image/png';
-      displayGeneratedImage(result.imageBase64);
-      document.getElementById('beforeAfterView').style.display = 'block';
-      document.getElementById('baselineView').style.display = 'none';
-      document.getElementById('canvasActions').style.display = 'flex';
-      addChatMessage('ava', 'Here is your master plan rendering. Download it or continue designing to refine it.');
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.imageUrl) {
+        // Display the Replicate output URL as the after image
+        const afterImg = document.getElementById('afterImg');
+        if (afterImg) afterImg.src = data.imageUrl;
+        document.getElementById('beforeAfterView').style.display = 'block';
+        document.getElementById('baselineView').style.display    = 'none';
+        document.getElementById('canvasActions').style.display   = 'flex';
+        state.generatedImageBase64    = null; // URL-based, not base64
+        addChatMessage('ava', '✅ Master plan rendering complete! Download it or continue refining your design.');
+      } else {
+        addChatMessage('ava', data.error || '⚠️ Render returned no image — check REPLICATE_API_TOKEN in Netlify env vars.');
+      }
     } else {
-      addChatMessage('ava', result?.text || '⚠️ Render failed — try again or adjust your design elements.');
+      const err = await resp.json().catch(() => ({}));
+      addChatMessage('ava', `⚠️ Render error: ${err.error || resp.status}. Add REPLICATE_API_TOKEN in Netlify → Site Settings → Environment Variables.`);
     }
   } catch (e) {
     typingEl.remove();
     addChatMessage('ava', `⚠️ Render error: ${e.message}`);
   }
-  if (btn) { btn.disabled = false; }
+  if (btn) btn.disabled = false;
 }
 
 // Design pipeline functions delegated to DESIGN_ENGINE module (js/design-engine.js)
@@ -469,6 +515,8 @@ function getTier(s) { return DESIGN_ENGINE.getTier(s); }
 function getBoostPrompt() { return DESIGN_ENGINE.getBoostPrompt(); }
 function getAutoDesignPrompt() { return DESIGN_ENGINE.getAutoDesignPrompt(); }
 function imageToBase64(s) { return DESIGN_ENGINE.imageToBase64(s); }
+function callGeminiTextOnly(p, i) { return DESIGN_ENGINE.callGeminiTextOnly(p, i); }
+function buildPlanViewPrompt(p) { return DESIGN_ENGINE.buildPlanViewPrompt(p); }
 
 
 // ========== METRICS SYSTEMS ==========
@@ -630,22 +678,117 @@ function updateTierMedal(tier) {
 function updateScoreDisplay(total, scores) {
   const config = SITE_CONFIGS[state.activeSite];
   if (!config) return;
-  const maxTotal = config.sections.reduce((sum, s) => sum + s.maxPts, 0);
+  const sys = METRICS_SYSTEMS[state.activeMetrics || 'sites'];
+  const sections = sys.sections
+    || (config.sections?.length ? config.sections : (sys.parcelSections || []));
+  const maxTotal = sys.max || sections.reduce((sum, s) => sum + s.maxPts, 0) || 200;
+
   document.getElementById('scoreValue').textContent = total;
+  document.querySelector('.score-ring-max').textContent = `/${maxTotal}`;
   const circumference = 326.73;
-  document.getElementById('scoreRingProgress').style.strokeDashoffset = circumference - (circumference * total / maxTotal);
-  const tier = DESIGN_ENGINE.getTier(total);
+  document.getElementById('scoreRingProgress').style.strokeDashoffset =
+    circumference - (circumference * Math.min(total, maxTotal) / maxTotal);
+
+  const t = sys.tiers;
+  let tier = 'none';
+  if (total >= t.platinum) tier = 'platinum';
+  else if (total >= t.gold) tier = 'gold';
+  else if (total >= t.silver) tier = 'silver';
+  else if (total >= t.certified) tier = 'certified';
+  const tierLabel = sys.tierLabels?.[tier] || (tier === 'none' ? 'Pre-Certification' : tier.charAt(0).toUpperCase() + tier.slice(1));
   const badge = document.getElementById('tierBadge');
-  badge.textContent = tier === 'none' ? 'Pre-Certification' : tier.charAt(0).toUpperCase() + tier.slice(1);
+  badge.textContent = tierLabel;
   badge.className = `tier-badge ${tier}`;
   updateTierMedal(tier);
+
   scores.forEach((s, i) => {
-    const sec = config.sections[i];
+    const sec = sections[i];
     if (!sec) return;
     const fill = document.getElementById(`fill-${sec.id}`);
     const pts = document.getElementById(`pts-${sec.id}`);
     if (fill) fill.style.width = `${(s / sec.maxPts) * 100}%`;
     if (pts) pts.textContent = `${s}/${sec.maxPts}`;
+  });
+}
+
+// ========== PARCEL COMPOSITING ==========
+async function compositeParcelDesign(config, baselineB64, designB64) {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const W = 1600, H = 1200;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const base = new Image();
+    base.crossOrigin = 'anonymous';
+    base.onload = () => {
+      ctx.drawImage(base, 0, 0, W, H);
+      const design = new Image();
+      design.crossOrigin = 'anonymous';
+      design.onload = () => {
+        const { s, w, n, e } = config.imageBounds;
+        ctx.save();
+        ctx.beginPath();
+        config.parcelRing.forEach((pt, idx) => {
+          const x = ((pt.lng - w) / (e - w)) * W;
+          const y = ((n - pt.lat) / (n - s)) * H;
+          if (idx === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(design, 0, 0, W, H);
+        ctx.restore();
+        resolve(canvas.toDataURL('image/png').split(',')[1]);
+      };
+      design.onerror = () => resolve(designB64); // fallback: unclipped
+      design.src = `data:image/png;base64,${designB64}`;
+    };
+    base.onerror = () => resolve(designB64);
+    base.src = baselineB64.startsWith('data:') ? baselineB64 : `data:image/png;base64,${baselineB64}`;
+  });
+}
+
+// Maps canvas element types → SITES v2 parcel section scores
+function scoreParcelDesign(elements, sections, prompt) {
+  const sectionMap = {
+    'site_context':   ['tree','shrub','meadow','green_roof'],
+    'pre_design':     ['tree','shrub','meadow'],
+    'water':          ['rain_garden','bioswale','water','cistern'],
+    'soil_veg':       ['tree','shrub','meadow','green_roof'],
+    'materials':      ['plaza','path','seating','amphitheater'],
+    'human_health':   ['plaza','seating','amphitheater','path','signage'],
+    'construction':   ['cistern','solar','rain_garden'],
+    'operations':     ['solar','cistern','green_roof'],
+    'education':      ['signage','amphitheater'],
+    'innovation':     ['solar','water','green_roof'],
+    // LEED ND
+    'smart_location': ['path','plaza'],
+    'neighborhood_pattern': ['path','plaza','seating'],
+    'green_infra':    ['tree','shrub','rain_garden','bioswale','cistern'],
+    'mixed_use':      ['plaza','seating','amphitheater'],
+    'leed_innovation':['solar','signage'],
+    // LBC
+    'place':          ['tree','shrub','meadow','path'],
+    'water_lbc':      ['rain_garden','bioswale','cistern','water'],
+    'energy':         ['solar'],
+    'health':         ['seating','signage','amphitheater'],
+    'materials_lbc':  ['plaza','path'],
+    'equity':         ['seating','amphitheater','signage'],
+    'beauty':         ['tree','shrub','water','plaza'],
+    // Carbon
+    'sequestration':  ['tree','shrub','meadow','green_roof'],
+    'avoided':        ['solar','cistern','rain_garden'],
+    'embodied':       ['plaza','path','seating'],
+    'operations_c':   ['solar','green_roof'],
+  };
+  const typeCounts = {};
+  elements.forEach(el => { typeCounts[el.type] = (typeCounts[el.type] || 0) + 1; });
+  return sections.map(sec => {
+    const relevantTypes = sectionMap[sec.id] || [];
+    const count = relevantTypes.reduce((sum, t) => sum + (typeCounts[t] || 0), 0);
+    const base = Math.min(count * 4, sec.maxPts * 0.7); // element density drives ~70% of score
+    // Keyword boost from prompt text
+    const kwBoost = (sec.keywords || []).filter(kw => prompt.toLowerCase().includes(kw)).length * 2;
+    return Math.min(Math.round(base + kwBoost), sec.maxPts);
   });
 }
 
@@ -655,11 +798,17 @@ function generateMission(scores, totalScore) {
   const text = document.getElementById('missionText');
   if (!card || !config) return;
 
+  // Resolve sections (parcel sites have empty config.sections)
+  const sys = METRICS_SYSTEMS[state.activeMetrics || 'sites'];
+  const sections = sys.sections
+    || (config.sections?.length ? config.sections : (sys.parcelSections || []));
+
   // Build sorted list of designable sections by weakness ratio
   const designable = [];
   scores.forEach((s, i) => {
-    if (!config.sections[i].keywords || config.sections[i].keywords.length === 0) return;
-    designable.push({ idx: i, ratio: s / config.sections[i].maxPts, section: config.sections[i], score: s });
+    const sec = sections[i];
+    if (!sec || !sec.keywords?.length) return;
+    designable.push({ idx: i, ratio: s / sec.maxPts, section: sec, score: s });
   });
   designable.sort((a, b) => a.ratio - b.ratio);
   if (!designable.length) return;
@@ -679,11 +828,13 @@ function generateMission(scores, totalScore) {
 }
 
 function getNextTierInfo(score) {
-  const t = SITE_CONFIGS[state.activeSite]?.tierThresholds || { certified:70, silver:85, gold:100, platinum:135 };
-  if (score < t.certified) return { name: 'Certified', pts: t.certified - score };
-  if (score < t.silver) return { name: 'Silver', pts: t.silver - score };
-  if (score < t.gold) return { name: 'Gold', pts: t.gold - score };
-  if (score < t.platinum) return { name: 'Platinum', pts: t.platinum - score };
+  const sys = METRICS_SYSTEMS[state.activeMetrics || 'sites'];
+  const t = sys?.tiers || SITE_CONFIGS[state.activeSite]?.tierThresholds || { certified:70, silver:85, gold:100, platinum:135 };
+  const labels = sys?.tierLabels || {};
+  if (score < t.certified) return { name: labels.certified || 'Certified', pts: t.certified - score };
+  if (score < t.silver) return { name: labels.silver || 'Silver', pts: t.silver - score };
+  if (score < t.gold) return { name: labels.gold || 'Gold', pts: t.gold - score };
+  if (score < t.platinum) return { name: labels.platinum || 'Platinum', pts: t.platinum - score };
   return null;
 }
 

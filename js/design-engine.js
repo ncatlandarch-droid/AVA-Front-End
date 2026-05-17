@@ -345,6 +345,93 @@ async function imageToBase64(src) {
 }
 
 // ---------------------------------------------------------------------------
+// Plan View Design — text-only Gemini call for SVG canvas output
+// ---------------------------------------------------------------------------
+
+async function callGeminiTextOnly(prompt, imageBase64) {
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash'];
+  const mkPayload = () => {
+    const parts = [{ text: prompt }];
+    if (imageBase64) parts.push({ inlineData: { mimeType: 'image/png', data: imageBase64 } });
+    return { contents: [{ parts }], generationConfig: { responseModalities: ['TEXT'] } };
+  };
+  const isLocal = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  let lastError = null;
+  for (const model of models) {
+    try {
+      let resp;
+      if (!isLocal) {
+        try {
+          resp = await fetch('/.netlify/functions/gemini-proxy', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, payload: mkPayload() })
+          });
+        } catch (_) { resp = null; }
+      }
+      if (!resp?.ok) {
+        if (!state.geminiKey) throw new Error('Enter your Gemini API key in Settings.');
+        resp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.geminiKey}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mkPayload()) }
+        );
+      }
+      if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e?.error?.message || `${resp.status}`); }
+      const data = await resp.json();
+      let txt = '';
+      (data.candidates?.[0]?.content?.parts || []).forEach(p => { if (p.text) txt += p.text; });
+      return { text: txt };
+    } catch (e) { lastError = e; }
+  }
+  throw lastError || new Error('All Gemini models failed');
+}
+
+function buildPlanViewPrompt(userPrompt) {
+  const config = SITE_CONFIGS[state.activeSite];
+  const bounds = config.imageBounds;
+  const m = config.metrics || {};
+  const existing = window.DESIGN_CANVAS?.elements?.length
+    ? `\nEXISTING CANVAS ELEMENTS: ${DESIGN_CANVAS.getSummary()}. Add complementary elements — do not duplicate positions.`
+    : '';
+  const midLat = ((bounds.n + bounds.s) / 2).toFixed(5);
+  const midLng = ((bounds.e + bounds.w) / 2).toFixed(5);
+
+  return `You are AVA, an expert landscape architect at Think! Design and Planning, LLC.
+Design a sustainable landscape master plan for ${config.name}.
+Site: ${m.totalAreaAcres || '?'} acres, ${m.soilType || 'unknown'} soil${m.landUse ? `, current use: ${m.landUse}` : ''}${m.zone ? `, zoned ${m.zone}` : ''}.
+Climate: USDA Zone 7b, Piedmont NC.
+
+${SITES_CREDIT_BRIEF}
+
+DESIGN REQUEST: ${userPrompt}
+Target SITES v2 Platinum (≥135 pts, max 200). Maximize ecological performance, stormwater management, human health, and biodiversity.${existing}
+
+PARCEL BOUNDS — ALL coordinates must fall strictly within:
+N=${bounds.n.toFixed(5)}, S=${bounds.s.toFixed(5)}, E=${bounds.e.toFixed(5)}, W=${bounds.w.toFixed(5)}
+Center: lat=${midLat}, lng=${midLng}
+
+Write a 2–3 paragraph design concept, then output EXACTLY this block on its own line:
+DESIGN_ELEMENTS: [...]
+
+Include 20–30 elements covering the FULL parcel. Use a mix of types for maximum SITES coverage.
+Formats (use real coordinates inside the bounds above):
+{"type":"tree","lat":${midLat},"lng":${midLng},"radiusFt":20,"label":"Willow Oak"}
+{"type":"shrub","lat":${midLat},"lng":${midLng},"radiusFt":8,"label":"Inkberry Holly"}
+{"type":"meadow","polygon":[[${bounds.n.toFixed(5)},${bounds.w.toFixed(5)}],[${bounds.n.toFixed(5)},${bounds.e.toFixed(5)}],[${bounds.s.toFixed(5)},${bounds.e.toFixed(5)}],[${bounds.s.toFixed(5)},${bounds.w.toFixed(5)}]],"label":"Native Meadow"}
+{"type":"rain_garden","lat":${midLat},"lng":${midLng},"radiusFt":25,"label":"Bioretention Cell"}
+{"type":"bioswale","points":[[lat,lng],[lat,lng],[lat,lng]],"widthFt":8,"label":"Drainage Swale"}
+{"type":"plaza","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Gathering Plaza"}
+{"type":"path","points":[[lat,lng],[lat,lng]],"widthFt":10,"label":"Primary Walk"}
+{"type":"water","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Reflection Pool"}
+{"type":"solar","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Solar Canopy"}
+{"type":"seating","lat":${midLat},"lng":${midLng},"radiusFt":10,"label":"Seating Node"}
+{"type":"cistern","lat":${midLat},"lng":${midLng},"radiusFt":12,"label":"Stormwater Cistern"}
+{"type":"green_roof","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Green Roof"}
+{"type":"amphitheater","polygon":[[lat,lng],[lat,lng],[lat,lng],[lat,lng]],"label":"Outdoor Classroom"}
+{"type":"signage","lat":${midLat},"lng":${midLng},"radiusFt":5,"label":"Interpretive Sign"}
+Spread elements across the FULL parcel. Every coordinate must be within the bounds.`;
+}
+
+// ---------------------------------------------------------------------------
 // Aerial Vision Analysis — Gemini reads the satellite image for site baseline
 // ---------------------------------------------------------------------------
 async function analyzeParcelAerial(config) {
@@ -488,4 +575,4 @@ document.addEventListener('ava:planViewCapture', async (evt) => {
   }
 });
 
-window.DESIGN_ENGINE={scoreSITESv2,getTier,getBoostPrompt,getAutoDesignPrompt,buildGeminiPrompt,callGeminiAPI,imageToBase64,computePenalties,getScoringReasons,analyzeParcelAerial};
+window.DESIGN_ENGINE={scoreSITESv2,getTier,getBoostPrompt,getAutoDesignPrompt,buildGeminiPrompt,callGeminiAPI,callGeminiTextOnly,buildPlanViewPrompt,imageToBase64,computePenalties,getScoringReasons,analyzeParcelAerial};
