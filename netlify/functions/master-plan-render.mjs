@@ -30,7 +30,7 @@ export default async function handler(req) {
 /* ── Replicate FLUX rendering ──────────────────────────── */
 
 async function renderPlan(prompt, lat, lng) {
-  const token = process.env.REPLICATE_API_TOKEN;
+  const token = Netlify.env.get('REPLICATE_API_TOKEN');
   if (!token) {
     return _err(503, 'REPLICATE_API_TOKEN not configured in Netlify environment variables. Add it at Netlify → Site Settings → Environment Variables.');
   }

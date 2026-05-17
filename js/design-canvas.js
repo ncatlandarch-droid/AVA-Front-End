@@ -102,9 +102,23 @@ window.DESIGN_CANVAS = (() => {
     _svg.appendChild(defs);
   }
 
+  function _clampToBounds(elements) {
+    if (!_bounds) return elements;
+    const { s, w, n, e } = _bounds;
+    const clampLat = lat => Math.max(s, Math.min(n, lat));
+    const clampLng = lng => Math.max(w, Math.min(e, lng));
+    return elements.map(el => {
+      const out = { ...el };
+      if (out.lat != null) { out.lat = clampLat(out.lat); out.lng = clampLng(out.lng); }
+      if (out.points)  out.points  = out.points.map(([lat, lng]) => [clampLat(lat), clampLng(lng)]);
+      if (out.polygon) out.polygon = out.polygon.map(([lat, lng]) => [clampLat(lat), clampLng(lng)]);
+      return out;
+    });
+  }
+
   function addElements(newElements) {
     if (!Array.isArray(newElements) || !newElements.length) return;
-    _elements.push(...newElements);
+    _elements.push(..._clampToBounds(newElements));
     _render();
     // Ensure SVG is mounted on the correct viewport (designed view may not exist at init time)
     if (_svg && !_svg.isConnected) _mountSVG();

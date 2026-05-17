@@ -483,10 +483,10 @@ Generate a complete aerial landscape master plan rendering in this illustrative 
     typingEl.remove();
     if (resp.ok) {
       const data = await resp.json();
-      if (data.imageUrl) {
+      if (data.url) {
         // Display the Replicate output URL as the after image
         const afterImg = document.getElementById('afterImg');
-        if (afterImg) afterImg.src = data.imageUrl;
+        if (afterImg) afterImg.src = data.url;
         document.getElementById('beforeAfterView').style.display = 'block';
         document.getElementById('baselineView').style.display    = 'none';
         document.getElementById('canvasActions').style.display   = 'flex';
