@@ -151,15 +151,12 @@ window.MASTER_PLAN_STUDIO = (() => {
     const prompt = document.getElementById('mpsPrompt')?.value?.trim();
     if (!prompt) { showToast('Enter a design prompt first', 'warn'); return; }
 
-    const geminiKey = localStorage.getItem('ava_gemini_key') || '';
-    if (!geminiKey) { showToast('Add your Gemini API key in Settings first', 'warn'); return; }
-
     const btn = document.getElementById('mpsBtnGenerate');
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;margin-right:6px"></div> Generating…';
 
     try {
-      const geoJson = await _callGeminiForZones(prompt, geminiKey);
+      const geoJson = await _callGeminiForZones(prompt);
       if (geoJson?.features?.length) {
         _savedZones = geoJson;
         _renderZonesOnMap(geoJson);
@@ -178,7 +175,8 @@ window.MASTER_PLAN_STUDIO = (() => {
     btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle">architecture</span> Generate Master Plan';
   }
 
-  async function _callGeminiForZones(prompt, apiKey) {
+  async function _callGeminiForZones(prompt) {
+    const apiKey = localStorage.getItem('ava_gemini_key') || null;
     const p      = _parcel || {};
     const acres  = p.acres ? (+p.acres).toFixed(2) : '2';
     const style  = document.getElementById('mpsStyle')?.value || 'hybrid';
@@ -227,16 +225,20 @@ Each feature properties MUST include:
 
 Return ONLY the raw GeoJSON FeatureCollection — no markdown, no explanation, no code fences.`;
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
+    const geminiPayload = {
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: { temperature: 0.3, responseMimeType: 'application/json' },
+    };
+    let res = await fetch('/.netlify/functions/gemini-proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: systemPrompt }] }],
-        generationConfig: { temperature: 0.3, responseMimeType: 'application/json' },
-      }),
-    });
-    if (!res.ok) throw new Error(`Gemini API ${res.status}: ${await res.text()}`);
+      body: JSON.stringify({ model: 'gemini-2.5-flash', payload: geminiPayload }),
+    }).catch(() => null);
+    if (!res?.ok && apiKey) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiPayload) });
+    }
+    if (!res?.ok) throw new Error(`Gemini API ${res?.status || 'unavailable'}`);
     const data = await res.json();
     const text  = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     return JSON.parse(text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
