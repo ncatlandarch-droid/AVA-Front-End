@@ -236,10 +236,22 @@ function buildGeminiPrompt(userPrompt) {
   const siteData = isParcel
     ? `${config.name}, ${config.metrics.totalAreaAcres} acres, ${config.metrics.soilType} soil${config.metrics.landUse ? `, current use: ${config.metrics.landUse}` : ''}${config.metrics.zone ? `, zoned ${config.metrics.zone}` : ''}.`
     : `${config.name}, ${config.metrics.totalAreaAcres} acres, ${config.metrics.soilType} soil, ${config.metrics.elevationDrop}ft elevation drop.`;
+
+  // For parcel sites, request structured JSON elements for the SVG design canvas
+  const boundsBlock = isParcel && config.imageBounds
+    ? `\nPARCEL COORDINATE BOUNDS (use for DESIGN_ELEMENTS): N=${config.imageBounds.n.toFixed(5)}, S=${config.imageBounds.s.toFixed(5)}, E=${config.imageBounds.e.toFixed(5)}, W=${config.imageBounds.w.toFixed(5)}. Center: ${config.lat?.toFixed(5)},${config.lng?.toFixed(5)}.`
+    : '';
+  const jsonBlock = isParcel ? `
+
+After your design description, output a DESIGN_ELEMENTS JSON block for SVG rendering. Use ONLY coordinates within the parcel bounds above. Format (all on one line after "DESIGN_ELEMENTS: "):
+DESIGN_ELEMENTS: [{"type":"tree","lat":36.07,"lng":-79.79,"radiusFt":20,"label":"Red Oak"},{"type":"rain_garden","lat":36.071,"lng":-79.791,"radiusFt":25,"label":"North Rain Garden"},{"type":"path","points":[[36.07,-79.79],[36.072,-79.792]],"widthFt":10,"label":"Main Walk"},{"type":"plaza","polygon":[[36.07,-79.79],[36.071,-79.79],[36.071,-79.791],[36.07,-79.791]],"label":"Central Plaza"}]
+Types: tree, shrub, meadow, rain_garden, bioswale, plaza, path, water, solar, seating, cistern, green_roof, amphitheater
+Include 15-25 elements covering the full parcel. Use real lat/lng within the bounds above.` : '';
+
   return `You are AVA (Adaptive Visualization Assistant), an expert AI landscape architect by Think! Design and Planning, LLC. Design in the style of Bjarke Ingels Group (BIG) — bold, geometric, ecologically sensitive, and deeply sustainable. Every design decision must simultaneously serve human health, ecological function, and visual spectacle.
 CAMERA: MAINTAIN EXACT SAME camera angle, position, perspective, and field of view as the input photo. BUILDINGS MUST REMAIN IDENTICAL. Only modify GROUND PLANE and VERTICAL SURFACES. Do NOT reshape, resize, or reposition any building.
 SITE CONTEXT: ${config.siteContext || config.name}
-SITE DATA: ${siteData}
+SITE DATA: ${siteData}${boundsBlock}
 ${goalsBlock}${sitesBlock}
 DESIGN PHILOSOPHY: Hedonistic sustainability — beautiful AND functional. Every element earns SITES v2 points. Design for PLATINUM certification. Each design decision should maximize ecological performance, human wellbeing, AND visual impact simultaneously.
 LANDSCAPE RULES: Use companion planting guilds for USDA Zone 7b Piedmont NC. Layer canopy → understory → shrub → groundcover. Prioritize native species. Use biodiverse polyculture. Only add elements the user requests — do NOT add extras beyond what is asked.
@@ -250,7 +262,7 @@ BUILDING WINDOWS (CRITICAL): Vegetation grows ONLY on solid wall surfaces BETWEE
 IMAGE QUALITY: MAXIMUM sharpness across entire image, especially faces. NO soft focus, NO blur.
 ${ctx}
 NEW ELEMENT TO ADD: ${userPrompt}
-${isFirst ? 'Generate a STUNNING photorealistic modification showing ONLY this specific element integrated into the existing site. Include people with clear, sharp faces.' : 'CRITICAL: Working from ORIGINAL baseline photo — camera angle, building positions, sky are LOCKED. Render ALL listed design elements as one cohesive design applied to the original scene.'}`;
+${isFirst ? 'Generate a STUNNING photorealistic modification showing ONLY this specific element integrated into the existing site. Include people with clear, sharp faces.' : 'CRITICAL: Working from ORIGINAL baseline photo — camera angle, building positions, sky are LOCKED. Render ALL listed design elements as one cohesive design applied to the original scene.'}${jsonBlock}`;
 }
 
 async function callGeminiAPI(prompt, imageBase64, referenceImageBase64, refMimeType) {
@@ -310,11 +322,25 @@ async function callGeminiAPI(prompt, imageBase64, referenceImageBase64, refMimeT
 }
 
 async function imageToBase64(src) {
+  // Google Static Maps images need server-side proxy to bypass CORS
+  if (src?.includes('maps.googleapis.com/maps/api/staticmap')) {
+    const isLocal = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!isLocal) {
+      try {
+        const r = await fetch(`/.netlify/functions/image-proxy?url=${encodeURIComponent(src)}`);
+        if (r.ok) {
+          const { base64 } = await r.json();
+          if (base64) return base64;
+        }
+      } catch (_) {}
+    }
+  }
+  // Default: direct fetch (works for same-origin or CORS-enabled images)
   try {
     const r = await fetch(src); const b = await r.blob();
     return new Promise((res,rej) => { const fr = new FileReader(); fr.onloadend = () => res(fr.result.split(',')[1]); fr.onerror = rej; fr.readAsDataURL(b); });
-  } catch (e) {
-    return new Promise((res,rej) => { const img = new Image(); img.onload = () => { const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img,0,0); res(c.toDataURL('image/png').split(',')[1]); }; img.onerror = rej; img.src = src; });
+  } catch (_) {
+    return new Promise((res,rej) => { const img = new Image(); img.crossOrigin = 'anonymous'; img.onload = () => { const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img,0,0); res(c.toDataURL('image/png').split(',')[1]); }; img.onerror = rej; img.src = src; });
   }
 }
 

@@ -186,8 +186,10 @@ function openDesignSheet(siteId) {
   chat.innerHTML = '';
   addChatMessage('ava', `Welcome to ${config.name}! ${config.history.summary} Tell me what you'd like to design, or click ✨ Auto-Design.`, true);
 
-  // Render parcel boundary SVG overlay on the designed view (baseline has it baked in)
-  renderParcelOverlay(config);
+  // Initialize SVG design canvas for parcel sites
+  if (siteId.startsWith('parcel_') && config.imageBounds && window.DESIGN_CANVAS) {
+    DESIGN_CANVAS.init('beforeAfterView', config.imageBounds);
+  }
 
   // Trigger aerial vision analysis for parcel-type sites
   if (siteId.startsWith('parcel_') && config.baselineImage && window.DESIGN_ENGINE?.analyzeParcelAerial) {
@@ -374,15 +376,88 @@ async function handleDesign(override) {
       if (newTier !== oldTier && newTier !== 'none') {
         celebrateTier(newTier);
       }
+      // Parse and render SVG design elements from text response
+      if (result.text && window.DESIGN_CANVAS) {
+        const elements = DESIGN_CANVAS.parseFromText(result.text);
+        if (elements.length) {
+          DESIGN_CANVAS.show('beforeAfterView');
+          DESIGN_CANVAS.addElements(elements);
+        }
+      }
+    } else if (result?.text) {
+      typingEl.remove();
+      // Text-only response: parse design elements and show SVG canvas
+      addChatMessage('ava', result.text.replace(/DESIGN_ELEMENTS:[\s\S]*$/, '').trim());
+      if (window.DESIGN_CANVAS) {
+        const elements = DESIGN_CANVAS.parseFromText(result.text);
+        if (elements.length) {
+          DESIGN_CANVAS.show('beforeAfterView');
+          DESIGN_CANVAS.addElements(elements);
+          document.getElementById('beforeAfterView').style.display = 'block';
+          document.getElementById('baselineView').style.display = 'none';
+          document.getElementById('canvasActions').style.display = 'flex';
+          const renderBtn = document.getElementById('btnRenderPlan');
+          if (renderBtn) renderBtn.style.display = '';
+          addChatMessage('ava', `✏️ Placed ${elements.length} design elements on the canvas. Click <strong>Render Plan</strong> for a beautiful master plan visualization.`);
+        }
+      }
     } else {
       typingEl.remove();
-      addChatMessage('ava', '⚠️ No image returned. Try rephrasing your design element.');
+      addChatMessage('ava', '⚠️ No response from design AI. Check your API key in Settings.');
     }
   } catch (error) {
     typingEl.remove();
     addChatMessage('ava', `⚠️ <strong>Error:</strong> ${escapeHTML(error.message)}`);
   }
   btn.disabled = false; btn.classList.remove('loading');
+}
+
+// ========== RENDER MASTER PLAN ==========
+// Generates a beautiful landscape architecture plan rendering from current SVG design data
+async function renderMasterPlan() {
+  const config = SITE_CONFIGS[state.activeSite];
+  if (!config) return;
+  const DE = window.DESIGN_ENGINE || {};
+  const summary = window.DESIGN_CANVAS ? DESIGN_CANVAS.getSummary() : '';
+  if (!summary || summary === 'No design elements yet.') {
+    addChatMessage('ava', 'Add some design elements first, then I can render a beautiful master plan.');
+    return;
+  }
+  const m = config.metrics || {};
+  const prompt = `You are an expert landscape architecture illustrator. Create a BEAUTIFUL, PROFESSIONAL aerial master plan rendering.
+
+SITE: ${config.name}, ${m.totalAreaAcres || '?'} acres${m.soilType ? `, ${m.soilType} soil` : ''}${m.landUse ? `, ${m.landUse}` : ''}.
+
+DESIGN ELEMENTS ON SITE:
+${summary}
+
+RENDERING STYLE: Professional landscape architecture aerial master plan. Hand-drawn quality with soft watercolor washes on a white or cream background. Crisp ink linework over watercolor fills. Color-coded: trees = rich green canopy circles, paths = warm sienna brown, rain gardens = soft blue-green, plazas = warm cream-beige, bioswales = flowing blue lines, meadow = soft yellow-green. Inset north arrow. Border with site name. The quality of a Sasaki, AECOM, or Nelson Byrd Woltz plan drawing. Bird's-eye view. NO photorealism — clean illustrative plan style. Scale bar included.
+
+Generate a complete aerial landscape master plan rendering in this illustrative style.`;
+
+  const typingEl = addTypingIndicator();
+  const btn = document.getElementById('btnRenderPlan');
+  if (btn) { btn.disabled = true; }
+
+  try {
+    const result = await (DE.callGeminiAPI ? DE.callGeminiAPI(prompt, null, null, null) : null);
+    typingEl.remove();
+    if (result?.imageBase64) {
+      state.generatedImageBase64 = result.imageBase64;
+      state.generatedImageMimeType = result.mimeType || 'image/png';
+      displayGeneratedImage(result.imageBase64);
+      document.getElementById('beforeAfterView').style.display = 'block';
+      document.getElementById('baselineView').style.display = 'none';
+      document.getElementById('canvasActions').style.display = 'flex';
+      addChatMessage('ava', 'Here is your master plan rendering. Download it or continue designing to refine it.');
+    } else {
+      addChatMessage('ava', result?.text || '⚠️ Render failed — try again or adjust your design elements.');
+    }
+  } catch (e) {
+    typingEl.remove();
+    addChatMessage('ava', `⚠️ Render error: ${e.message}`);
+  }
+  if (btn) { btn.disabled = false; }
 }
 
 // Design pipeline functions delegated to DESIGN_ENGINE module (js/design-engine.js)
@@ -402,18 +477,29 @@ const METRICS_SYSTEMS = {
     label: 'SITES v2', max: 200,
     tiers: { certified: 70, silver: 85, gold: 100, platinum: 135 },
     tierLabels: { none: 'Pre-Certification', certified: 'Certified', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' },
-    sections: null, // uses SITE_CONFIGS sections
+    sections: null, // registered sites use SITE_CONFIGS sections; parcels use parcelSections below
+    parcelSections: [
+      { id: 'pre',  name: 'Pre-Site Assessment',       maxPts: 11, desc: 'Site history, ecological context & prior land use documentation' },
+      { id: 'wat',  name: 'Water',                     maxPts: 44, desc: 'Stormwater capture, permeable surfaces, runoff reduction & water quality' },
+      { id: 'soil', name: 'Soil & Vegetation',         maxPts: 39, desc: 'Native plants, topsoil health, biodiversity & canopy coverage targets' },
+      { id: 'mat',  name: 'Materials',                 maxPts: 19, desc: 'Reclaimed, recycled, locally-sourced & low embodied-carbon materials' },
+      { id: 'hlt',  name: 'Human Health & Wellbeing',  maxPts: 30, desc: 'Universal access, biophilic design, shade, comfort & active living' },
+      { id: 'con',  name: 'Construction',              maxPts: 16, desc: 'Erosion control, waste reduction & sustainable construction practices' },
+      { id: 'ops',  name: 'Operations & Maintenance',  maxPts: 11, desc: 'Long-term sustainability plan, monitoring & adaptive management' },
+      { id: 'edu',  name: 'Education & Performance',   maxPts: 16, desc: 'Interpretive signage, reporting, data sharing & stewardship programs' },
+      { id: 'inn',  name: 'Innovation',                maxPts: 14, desc: 'Pilot credits, exceptional performance & advanced technology integration' },
+    ],
   },
   leed: {
     label: 'LEED ND', max: 110,
     tiers: { certified: 40, silver: 50, gold: 60, platinum: 80 },
     tierLabels: { none: 'Not Certified', certified: 'Certified', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' },
     sections: [
-      { id: 'lnd', name: 'Smart Location & Linkage', maxPts: 27 },
-      { id: 'npd', name: 'Neighborhood Pattern & Design', maxPts: 44 },
-      { id: 'gib', name: 'Green Infrastructure & Buildings', maxPts: 29 },
-      { id: 'inn', name: 'Innovation & Design Process', maxPts: 6 },
-      { id: 'rpc', name: 'Regional Priority Credits', maxPts: 4 },
+      { id: 'lnd', name: 'Smart Location & Linkage',          maxPts: 27, desc: 'Proximity to transit, infill development & avoiding sensitive lands' },
+      { id: 'npd', name: 'Neighborhood Pattern & Design',     maxPts: 44, desc: 'Walkability, mixed uses, street networks & open space quality' },
+      { id: 'gib', name: 'Green Infrastructure & Buildings',  maxPts: 29, desc: 'Energy, water, materials performance & green building standards' },
+      { id: 'inn', name: 'Innovation & Design Process',       maxPts: 6,  desc: 'Innovative strategies beyond standard credit requirements' },
+      { id: 'rpc', name: 'Regional Priority Credits',         maxPts: 4,  desc: 'Locally important environmental or social equity priorities' },
     ],
   },
   lbc: {
@@ -421,13 +507,13 @@ const METRICS_SYSTEMS = {
     tiers: { certified: 7, silver: 5, gold: 6, platinum: 7 },
     tierLabels: { none: 'Not Certified', certified: 'Petal Certified', silver: '3-Petal', gold: '5-Petal', platinum: 'Full Living' },
     sections: [
-      { id: 'place',    name: 'Place',         maxPts: 1 },
-      { id: 'water',    name: 'Water',         maxPts: 1 },
-      { id: 'energy',   name: 'Energy',        maxPts: 1 },
-      { id: 'health',   name: 'Health & Happiness', maxPts: 1 },
-      { id: 'material', name: 'Materials',     maxPts: 1 },
-      { id: 'equity',   name: 'Equity',        maxPts: 1 },
-      { id: 'beauty',   name: 'Beauty',        maxPts: 1 },
+      { id: 'place',    name: 'Place',              maxPts: 1, desc: 'Limits growth to appropriate sites; protects ecosystem services' },
+      { id: 'water',    name: 'Water',              maxPts: 1, desc: '100% of water needs met by captured rain or recycled water on site' },
+      { id: 'energy',   name: 'Energy',             maxPts: 1, desc: '100% of energy needs met by on-site renewable energy' },
+      { id: 'health',   name: 'Health & Happiness', maxPts: 1, desc: 'Biophilic design, air quality, access to nature & human comfort' },
+      { id: 'material', name: 'Materials',          maxPts: 1, desc: 'No Red List chemicals; transparency in supply chain' },
+      { id: 'equity',   name: 'Equity',             maxPts: 1, desc: 'Universal access, living wages, community benefit & human rights' },
+      { id: 'beauty',   name: 'Beauty',             maxPts: 1, desc: 'Design that uplifts the human spirit and connects to place and culture' },
     ],
   },
   carbon: {
@@ -435,10 +521,10 @@ const METRICS_SYSTEMS = {
     tiers: { certified: 25, silver: 50, gold: 75, platinum: 90 },
     tierLabels: { none: 'Carbon Positive', certified: 'Carbon Neutral', silver: 'Carbon Negative', gold: 'Net-Zero', platinum: 'Carbon Sink' },
     sections: [
-      { id: 'seq',   name: 'Carbon Sequestration (trees + soil)', maxPts: 40 },
-      { id: 'solar', name: 'Renewable Energy Offset',              maxPts: 25 },
-      { id: 'mat',   name: 'Embodied Carbon (materials)',          maxPts: 20 },
-      { id: 'ops',   name: 'Operational Carbon (irrigation/lighting)', maxPts: 15 },
+      { id: 'seq',   name: 'Carbon Sequestration',          maxPts: 40, desc: 'CO₂ captured by trees, soil organic matter & planted biomass' },
+      { id: 'solar', name: 'Renewable Energy Offset',       maxPts: 25, desc: 'On-site solar, wind or geothermal displacing grid carbon' },
+      { id: 'mat',   name: 'Embodied Carbon (Materials)',   maxPts: 20, desc: 'Carbon stored in or avoided by reclaimed & low-carbon materials' },
+      { id: 'ops',   name: 'Operational Carbon',            maxPts: 15, desc: 'Emissions reduced by smart irrigation, LED lighting & low-input maintenance' },
     ],
   },
 };
@@ -468,8 +554,9 @@ function initScorePanel() {
 
   const sys = METRICS_SYSTEMS[state.activeMetrics || 'sites'];
 
-  // Sections: use the active metrics system's override, or fall back to SITE_CONFIGS sections
-  const sections = sys.sections || config.sections || [];
+  // Sections: system override → config sections → parcel fallback for SITES v2
+  const sections = sys.sections
+    || (config.sections?.length ? config.sections : (sys.parcelSections || []));
   state.sectionScores = sections.map(s => s.assumed ? (s.assumedPts || 0) : 0);
   const assumedTotal = state.sectionScores.reduce((a, b) => a + b, 0);
   // Use per-metrics aerial baseline if available, otherwise fall back to config.baselineScore
@@ -503,10 +590,14 @@ function initScorePanel() {
     const pts = state.sectionScores[i];
     const pct = s.maxPts ? (pts / s.maxPts) * 100 : 0;
     const assumed = s.assumed ? ' assumed' : '';
+    const descHtml = s.desc ? `<span class="section-score-desc">${s.desc}</span>` : '';
     return `<div class="section-score-row${assumed}">
-      <span class="section-score-name">${s.name}${s.assumed ? ' \u2713' : ''}</span>
+      <div class="section-score-header">
+        <span class="section-score-name">${s.name}${s.assumed ? ' \u2713' : ''}</span>
+        <span class="section-score-pts" id="pts-${s.id}">${pts}/${s.maxPts}</span>
+      </div>
+      ${descHtml}
       <div class="section-score-bar"><div class="section-score-fill${assumed}" id="fill-${s.id}" style="width:${pct}%"></div></div>
-      <span class="section-score-pts" id="pts-${s.id}">${pts}/${s.maxPts}</span>
     </div>`;
   }).join('');
 
