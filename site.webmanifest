@@ -3,15 +3,21 @@
   "short_name": "AVA",
   "icons": [
     {
-      "src": "/favicon.png",
+      "src": "/ava-logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "theme_color": "#002B52",
   "background_color": "#002B52",
   "display": "standalone",
   "start_url": "/",
-  "description": "Adaptive Visualization Assistant for the Geoscope — a spatial intelligence platform by Think! Design and Planning, LLC."
+  "description": "AVA (Adaptive Visualization Assistant) — 3D AI visualization and SITES v2 design engine for landscape architecture. Spatial intelligence for landscape planning, developed by Think! Design and Planning, LLC."
 }
