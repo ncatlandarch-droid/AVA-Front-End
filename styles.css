@@ -45,7 +45,7 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
   background-size: 300% 300%;
   animation: headerGradientShift 12s ease-in-out infinite;
   border-bottom: 3px solid;
-  border-image: linear-gradient(90deg, #E040FB, #FDB927, #E040FB) 1;
+  border-image: linear-gradient(90deg, #FDB927, #E6A521, #FDB927) 1;
   box-shadow: 0 4px 20px rgba(0,48,135,0.35);
 }
 @keyframes headerGradientShift {
@@ -83,18 +83,18 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
 .top-bar-brand { display: flex; flex-direction: column; line-height: 1.15; }
 /* Spelled-out brand name — EMMA style */
 .top-bar-brand-name {
-  font-size: 28px; font-weight: 900;
+  font-size: 30px; font-weight: 900;
   letter-spacing: 0.01em;
   display: flex; align-items: baseline; gap: 0;
 }
 .top-bar-brand-name .ava-letter {
-  color: #E040FB; /* magenta/pink to match the logo */
+  color: #FDB927;
   font-weight: 900;
 }
 .top-bar-brand-name .ava-word {
   color: rgba(255,255,255,0.92);
   font-weight: 500;
-  font-size: 28px;
+  font-size: 30px;
 }
 .top-bar-brand h1 { font-size: 32px; font-weight: 700; letter-spacing: 0.3px; line-height: 1.2; color: #fff; }
 
@@ -1075,6 +1075,10 @@ body.workspace-active #campusMapContainer { visibility: hidden; }
   .projects-gallery-view { padding: 60px 16px 24px; }
   .projects-gallery-grid { grid-template-columns: 1fr; }
   .top-bar-subtitle { display: none; }
+  .top-bar-brand-name .ava-word { display: none; }
+  .top-bar-brand-name { font-size: 24px; gap: 4px; }
+  .top-bar-at-logo { display: none; }
+  .top-bar-logo-separator { display: none; }
   .modal-card { max-width: 95vw; }
   .community-grid { grid-template-columns: 1fr; }
 }
