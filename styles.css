@@ -44,7 +44,8 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
   background: linear-gradient(135deg, #003087 0%, #002266 40%, #001a4d 70%, #003087 100%);
   background-size: 300% 300%;
   animation: headerGradientShift 12s ease-in-out infinite;
-  border-bottom: 3px solid #004ccc;
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg, #E040FB, #FDB927, #E040FB) 1;
   box-shadow: 0 4px 20px rgba(0,48,135,0.35);
 }
 @keyframes headerGradientShift {
@@ -53,8 +54,19 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
   100% { background-position: 0% 50%; }
 }
 .top-bar-ava-logo {
-  height: 64px; width: auto; object-fit: contain;
+  height: 48px; width: auto; object-fit: contain;
   filter: drop-shadow(0 1px 4px rgba(0,0,0,0.5));
+}
+/* NC A&T university logo (white reversed) */
+.top-bar-at-logo {
+  height: 40px; width: auto; flex-shrink: 0;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+}
+/* Separator between logos */
+.top-bar-logo-separator {
+  width: 1px; height: 32px;
+  background: rgba(255,255,255,0.2);
+  flex-shrink: 0;
 }
 /* Think! footer */
 .think-footer {
@@ -68,9 +80,25 @@ html, body { height: 100%; overflow: hidden; font-family: var(--font-family); ba
   white-space: nowrap;
 }
 .top-bar-left { display: flex; align-items: center; gap: 14px; }
+.top-bar-brand { display: flex; flex-direction: column; line-height: 1.15; }
+/* Spelled-out brand name — EMMA style */
+.top-bar-brand-name {
+  font-size: 28px; font-weight: 900;
+  letter-spacing: 0.01em;
+  display: flex; align-items: baseline; gap: 0;
+}
+.top-bar-brand-name .ava-letter {
+  color: #E040FB; /* magenta/pink to match the logo */
+  font-weight: 900;
+}
+.top-bar-brand-name .ava-word {
+  color: rgba(255,255,255,0.92);
+  font-weight: 500;
+  font-size: 28px;
+}
 .top-bar-brand h1 { font-size: 32px; font-weight: 700; letter-spacing: 0.3px; line-height: 1.2; color: #fff; }
 
-.top-bar-subtitle { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.7); }
+.top-bar-subtitle { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(255,255,255,0.6); margin-top: 2px; }
 .top-bar-right { display: flex; align-items: center; gap: 6px; }
 .top-btn {
   display: flex; align-items: center; justify-content: center;
