@@ -1273,12 +1273,12 @@ function handleAvaClick() {
   if (!window.AVA_TTS) return;
   
   // If she's speaking, stop her
-  if (document.querySelector('.ava-avatar-wrapper.speaking')) {
+  if (AVA_TTS.isSpeaking()) {
     AVA_TTS.stop();
     return;
   }
   
-  // Unmute if muted
+  // Unmute if muted (clicking avatar = user wants to hear her)
   if (AVA_TTS.isMuted()) AVA_TTS.toggleMute();
   
   // Speak contextual greeting
