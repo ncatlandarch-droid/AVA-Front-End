@@ -94,7 +94,10 @@ window.AVA_TTS = (() => {
      SPEAK — Resolves coaching keys, wraps with language prompt
      ══════════════════════════════════════════════════════════════ */
   function speak(textOrKey) {
-    if (!_engine) return;
+    if (!_engine) {
+      console.warn('[AVA TTS] speak() — no engine, skipping');
+      return;
+    }
 
     // Resolve coaching keys to full text
     const resolvedText = COACHING_TEXT[textOrKey] || textOrKey;
@@ -123,6 +126,10 @@ window.AVA_TTS = (() => {
     return _engine.toggleMute();
   }
 
+  function forceUnmute() {
+    if (_engine) _engine.forceUnmute();
+  }
+
   /* ══════════════════════════════════════════════════════════════
      STATE QUERIES
      ══════════════════════════════════════════════════════════════ */
@@ -141,6 +148,7 @@ window.AVA_TTS = (() => {
     speak,
     stop,
     toggleMute,
+    forceUnmute,
     isMuted,
     isSpeaking,
     setLanguage: (code) => {

@@ -1279,7 +1279,7 @@ function handleAvaClick() {
   }
   
   // Unmute if muted (clicking avatar = user wants to hear her)
-  if (AVA_TTS.isMuted()) AVA_TTS.toggleMute();
+  if (AVA_TTS.isMuted()) AVA_TTS.forceUnmute();
   
   // Speak contextual greeting
   const designSheet = document.getElementById('designSheet');

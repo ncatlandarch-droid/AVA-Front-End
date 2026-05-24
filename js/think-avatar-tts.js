@@ -92,10 +92,22 @@ const ThinkAvatarTTS = (() => {
      * @param {object} opts - { coachingKey: string, fallbackText: string }
      */
     function speak(textOrKey, opts = {}) {
-      if (_isMuted) return;
+      console.log(`[${NAME} TTS] speak() called — muted: ${_isMuted}, speaking: ${_isSpeaking}, key: "${textOrKey?.substring(0,40)}..."`);
+      if (_isMuted) {
+        console.log(`[${NAME} TTS] Blocked — voice is muted`);
+        return;
+      }
 
       // Stop current speech to prevent talking over herself
       if (_isSpeaking) stop();
+
+      // Pre-warm AudioContext on user gesture (browser autoplay policy)
+      try {
+        const ctx = _getAudioContext();
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(() => console.log(`[${NAME} TTS] AudioContext resumed`));
+        }
+      } catch (e) { /* will be created during playback */ }
 
       _queue.push({
         key: textOrKey,
@@ -191,8 +203,12 @@ const ThinkAvatarTTS = (() => {
     // ═══════════════════════════════════════
 
     async function _generateLiveAudio(text) {
+      console.log(`[${NAME} TTS] _generateLiveAudio — text length: ${text.length}, proxy: ${PROXY_URL ? 'YES' : 'direct'}`);
       const audioCtx = _getAudioContext();
-      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      if (audioCtx.state === 'suspended') {
+        console.log(`[${NAME} TTS] Resuming suspended AudioContext...`);
+        await audioCtx.resume();
+      }
 
       _setSpeaking(true);
 
@@ -200,12 +216,14 @@ const ThinkAvatarTTS = (() => {
 
       if (PROXY_URL) {
         // ── Server-side proxy — API key stays on server ──
+        console.log(`[${NAME} TTS] Fetching from proxy: ${PROXY_URL}`);
         const response = await fetch(PROXY_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, voice: VOICE_NAME, model: TTS_MODEL })
         });
 
+        console.log(`[${NAME} TTS] Proxy response: ${response.status}`);
         if (!response.ok) {
           const errText = await response.text().catch(() => '');
           throw new Error(`TTS proxy ${response.status}: ${errText.substring(0, 200)}`);
@@ -322,17 +340,31 @@ const ThinkAvatarTTS = (() => {
     function toggleMute() {
       // If speaking, stop instead of toggling
       if (_isSpeaking) {
+        console.log(`[${NAME} TTS] toggleMute — currently speaking, stopping instead`);
         stop();
         return _isMuted;
       }
 
       _isMuted = !_isMuted;
-      localStorage.setItem(MUTE_STORAGE_KEY, _isMuted);
+      localStorage.setItem(MUTE_STORAGE_KEY, String(_isMuted));
       _updateAvatarState();
       onMuteChanged(_isMuted);
 
       console.log(`[${NAME} TTS] ${_isMuted ? 'Muted' : 'Unmuted'}`);
       return _isMuted;
+    }
+
+    /**
+     * Force unmute without the isSpeaking guard.
+     * Used by avatar click handlers that need to guarantee unmute.
+     */
+    function forceUnmute() {
+      if (!_isMuted) return;
+      _isMuted = false;
+      localStorage.setItem(MUTE_STORAGE_KEY, 'false');
+      _updateAvatarState();
+      onMuteChanged(false);
+      console.log(`[${NAME} TTS] Force unmuted`);
     }
 
     function isMuted() {
@@ -428,6 +460,7 @@ const ThinkAvatarTTS = (() => {
       speak,
       stop,
       toggleMute,
+      forceUnmute,
       isMuted,
       isSpeaking,
       registerPreRecorded,
