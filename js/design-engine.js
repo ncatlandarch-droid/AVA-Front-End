@@ -256,7 +256,7 @@ ${goalsBlock}${sitesBlock}
 DESIGN PHILOSOPHY: Hedonistic sustainability — beautiful AND functional. Every element earns SITES v2 points. Design for PLATINUM certification. Each design decision should maximize ecological performance, human wellbeing, AND visual impact simultaneously.
 LANDSCAPE RULES: Use companion planting guilds for USDA Zone 7b Piedmont NC. Layer canopy → understory → shrub → groundcover. Prioritize native species. Use biodiverse polyculture. Only add elements the user requests — do NOT add extras beyond what is asked.
 STYLE: ULTRA HIGH RESOLUTION 8K, TACK-SHARP professional landscape architecture visualization. Golden-hour sunlight, brilliant blue sky, warm dappled light. Rich saturated colors. Award-winning landscape photography — luminous, inviting, breathtaking.
-PEOPLE (MANDATORY): Include 3-5 diverse people at MAXIMUM CLARITY. FACES MUST BE CRYSTAL CLEAR — portrait-quality sharpness. Candid, joyful outdoor life.
+PEOPLE (MANDATORY): Include 3-5 people at MAXIMUM CLARITY. The majority should be African American college-age students reflecting an HBCU campus — with some diversity. FACES MUST BE CRYSTAL CLEAR — portrait-quality sharpness. Candid, joyful outdoor life. Show students studying, socializing, or walking through the landscape.
 VEGETATION: Species-accurate for USDA Zone 7b Piedmont NC. Lush, healthy, VIBRANT.
 BUILDING WINDOWS (CRITICAL): Vegetation grows ONLY on solid wall surfaces BETWEEN windows.
 IMAGE QUALITY: MAXIMUM sharpness across entire image, especially faces. NO soft focus, NO blur.
