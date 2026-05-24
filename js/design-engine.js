@@ -255,14 +255,14 @@ SITE DATA: ${siteData}${boundsBlock}
 ${goalsBlock}${sitesBlock}
 DESIGN PHILOSOPHY: Hedonistic sustainability — beautiful AND functional. Every element earns SITES v2 points. Design for PLATINUM certification. Each design decision should maximize ecological performance, human wellbeing, AND visual impact simultaneously.
 LANDSCAPE RULES: Use companion planting guilds for USDA Zone 7b Piedmont NC. Layer canopy → understory → shrub → groundcover. Prioritize native species. Use biodiverse polyculture. Only add elements the user requests — do NOT add extras beyond what is asked.
-STYLE: ULTRA HIGH RESOLUTION 8K, TACK-SHARP professional landscape architecture visualization. Golden-hour sunlight, brilliant blue sky, warm dappled light. Rich saturated colors. Award-winning landscape photography — luminous, inviting, breathtaking.
-PEOPLE (MANDATORY): Include 3-5 people at MAXIMUM CLARITY. The majority should be African American college-age students reflecting an HBCU campus — with some diversity. FACES MUST BE CRYSTAL CLEAR — portrait-quality sharpness. Candid, joyful outdoor life. Show students studying, socializing, or walking through the landscape.
-VEGETATION: Species-accurate for USDA Zone 7b Piedmont NC. Lush, healthy, VIBRANT.
+STYLE: HYPERREALISTIC 8K professional landscape architecture visualization. Shot on Canon EOS R5, 85mm f/1.4 lens, golden-hour natural light. Unreal Engine 5 photorealism quality. Cinematic depth, volumetric light through canopy, lens flare from sun. Rich saturated Kodak Portra 400 color palette. Award-winning Archdaily-featured visualization — luminous, inviting, breathtaking. Every leaf, blade of grass, and water reflection rendered at maximum fidelity.
+PEOPLE (MANDATORY): Include 3-5 hyperrealistic people at MAXIMUM CLARITY. The majority MUST be African American college-age students reflecting NC A&T State University — a premier HBCU campus. Include some diversity. FACES MUST BE CRYSTAL CLEAR with visible skin texture, natural expressions, and portrait-quality sharpness. Show students in NC A&T blue and gold attire — studying, laughing, socializing, or walking through the landscape. Candid, joyful, authentic campus life. People must look like REAL PHOTOGRAPHS, not AI-generated.
+VEGETATION: Species-accurate for USDA Zone 7b Piedmont NC. Lush, healthy, VIBRANT. Individual leaf detail visible on foreground plants.
 BUILDING WINDOWS (CRITICAL): Vegetation grows ONLY on solid wall surfaces BETWEEN windows.
-IMAGE QUALITY: MAXIMUM sharpness across entire image, especially faces. NO soft focus, NO blur.
+IMAGE QUALITY: HYPERREALISTIC — indistinguishable from a real photograph. MAXIMUM sharpness across entire image, especially faces and skin. Natural subsurface scattering on skin. NO soft focus, NO blur, NO plastic/waxy skin, NO uncanny valley. Fabric texture visible on clothing. Water reflections physically accurate.
 ${ctx}
 NEW ELEMENT TO ADD: ${userPrompt}
-${isFirst ? 'Generate a STUNNING photorealistic modification showing ONLY this specific element integrated into the existing site. Include people with clear, sharp faces.' : 'CRITICAL: Working from ORIGINAL baseline photo — camera angle, building positions, sky are LOCKED. Render ALL listed design elements as one cohesive design applied to the original scene.'}${jsonBlock}`;
+${isFirst ? 'Generate a STUNNING hyperrealistic photographic modification showing ONLY this specific element integrated into the existing site. Include African American NC A&T students with crystal-clear, portrait-quality faces. The result must be indistinguishable from a real photograph.' : 'CRITICAL: Working from ORIGINAL baseline photo — camera angle, building positions, sky are LOCKED. Render ALL listed design elements as one cohesive design applied to the original scene. People must be hyperrealistic African American NC A&T students.'}${jsonBlock}`;
 }
 
 async function callGeminiAPI(prompt, imageBase64, referenceImageBase64, refMimeType) {

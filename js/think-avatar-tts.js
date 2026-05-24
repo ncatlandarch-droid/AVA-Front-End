@@ -68,6 +68,8 @@ const ThinkAvatarTTS = (() => {
     let _currentSource = null;
     let _queue = [];
     let _processing = false;
+    let _abortController = null;   // Cancels in-flight TTS fetch on stop()
+    let _generation = 0;           // Increments on each speak/stop — stale responses are rejected
 
     // Pre-recorded WAV mapping { key: 'path/to/file.wav' }
     let _preRecorded = config.preRecorded || {};
@@ -98,8 +100,13 @@ const ThinkAvatarTTS = (() => {
         return;
       }
 
-      // Stop current speech to prevent talking over herself
-      if (_isSpeaking) stop();
+      // CRITICAL: Stop current speech + cancel in-flight requests
+      if (_isSpeaking || _processing) stop();
+
+      // New generation — any stale audio from old requests will be rejected
+      _generation++;
+      const myGen = _generation;
+      console.log(`[${NAME} TTS] Starting generation ${myGen}`);
 
       // Pre-warm AudioContext on user gesture (browser autoplay policy)
       try {
@@ -112,7 +119,8 @@ const ThinkAvatarTTS = (() => {
       _queue.push({
         key: textOrKey,
         text: opts.fallbackText || textOrKey,
-        coachingKey: opts.coachingKey || null
+        coachingKey: opts.coachingKey || null,
+        generation: myGen
       });
 
       if (!_processing) _processQueue();
@@ -125,9 +133,15 @@ const ThinkAvatarTTS = (() => {
     async function _processQueue() {
       if (_processing || _queue.length === 0) return;
       _processing = true;
+      const gen = _generation;
 
-      while (_queue.length > 0) {
+      while (_queue.length > 0 && gen === _generation) {
         const item = _queue.shift();
+        // Reject items from a previous generation
+        if (item.generation !== undefined && item.generation !== _generation) {
+          console.log(`[${NAME} TTS] Skipping stale queue item (gen ${item.generation} vs ${_generation})`);
+          continue;
+        }
         try {
           // 1. Try pre-recorded WAV
           if (_preRecorded[item.key]) {
@@ -140,10 +154,15 @@ const ThinkAvatarTTS = (() => {
           }
 
           // 2. Fallback: Live Gemini Neural TTS
+          if (gen !== _generation) break;  // Stop was called during pre-recorded attempt
           await _generateLiveAudio(item.text);
 
         } catch (err) {
-          console.warn(`[${NAME} TTS] Playback failed, skipping:`, err.message);
+          if (err.name === 'AbortError') {
+            console.log(`[${NAME} TTS] Fetch aborted (stop was called)`);
+          } else {
+            console.warn(`[${NAME} TTS] Playback failed, skipping:`, err.message);
+          }
           _setSpeaking(false);
         }
       }
@@ -203,7 +222,8 @@ const ThinkAvatarTTS = (() => {
     // ═══════════════════════════════════════
 
     async function _generateLiveAudio(text) {
-      console.log(`[${NAME} TTS] _generateLiveAudio — text length: ${text.length}, proxy: ${PROXY_URL ? 'YES' : 'direct'}`);
+      const gen = _generation;
+      console.log(`[${NAME} TTS] _generateLiveAudio — gen: ${gen}, text length: ${text.length}, proxy: ${PROXY_URL ? 'YES' : 'direct'}`);
       const audioCtx = _getAudioContext();
       if (audioCtx.state === 'suspended') {
         console.log(`[${NAME} TTS] Resuming suspended AudioContext...`);
@@ -211,6 +231,10 @@ const ThinkAvatarTTS = (() => {
       }
 
       _setSpeaking(true);
+
+      // Create AbortController for this request
+      _abortController = new AbortController();
+      const signal = _abortController.signal;
 
       let data;
 
@@ -220,8 +244,16 @@ const ThinkAvatarTTS = (() => {
         const response = await fetch(PROXY_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text, voice: VOICE_NAME, model: TTS_MODEL })
+          body: JSON.stringify({ text, voice: VOICE_NAME, model: TTS_MODEL }),
+          signal
         });
+
+        // Check if stop was called while waiting for response
+        if (gen !== _generation) {
+          console.log(`[${NAME} TTS] Generation changed during fetch, discarding`);
+          _setSpeaking(false);
+          return;
+        }
 
         console.log(`[${NAME} TTS] Proxy response: ${response.status}`);
         if (!response.ok) {
@@ -380,8 +412,18 @@ const ThinkAvatarTTS = (() => {
     // ═══════════════════════════════════════
 
     function stop() {
+      console.log(`[${NAME} TTS] stop() — aborting gen ${_generation}`);
+      _generation++;  // Invalidate any in-flight requests
       _queue = [];
       _processing = false;
+
+      // Cancel in-flight fetch
+      if (_abortController) {
+        try { _abortController.abort(); } catch (e) {}
+        _abortController = null;
+      }
+
+      // Stop current audio playback
       if (_currentSource) {
         try { _currentSource.stop(); } catch (e) {}
         _currentSource = null;
