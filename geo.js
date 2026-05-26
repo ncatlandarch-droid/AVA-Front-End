@@ -903,62 +903,78 @@ window.GEO = (() => {
     _gmMap.controls[google.maps.ControlPosition.LEFT_CENTER].push(panel);
 
     // ── CUSTOM CTRL+DRAG TILT & ROTATE ──
-    // Google Maps raster mode doesn't support gesture-based tilt.
-    // We intercept Ctrl+drag ourselves and programmatically set tilt/heading.
-    // Vertical drag = tilt (0-67°), Horizontal drag = rotate heading.
+    // Google Maps swallows mouse events through its internal DOM layers.
+    // Solution: overlay a transparent div when Ctrl is held that captures
+    // all mouse input. Drag up = tilt to 45° (and auto-switch to Cesium).
+    // Drag sideways = rotate heading.
     const mapDiv = _gmMap.getDiv();
+    const overlay = document.createElement('div');
+    overlay.id = 'gm-tilt-overlay';
+    overlay.style.cssText = [
+      'position:absolute', 'inset:0', 'z-index:50',
+      'cursor:grab', 'display:none',
+      'background:transparent'
+    ].join(';');
+    mapDiv.appendChild(overlay);
+
     let _ctrlDragging = false;
     let _ctrlStartY = 0;
     let _ctrlStartX = 0;
-    let _ctrlStartTilt = 0;
     let _ctrlStartHeading = 0;
 
-    mapDiv.addEventListener('mousedown', (e) => {
-      if (!e.ctrlKey && !e.metaKey) return;
+    // Show overlay when Ctrl is pressed, hide when released
+    window.addEventListener('keydown', (e) => {
+      if ((e.key === 'Control' || e.key === 'Meta') && _mode === 'google') {
+        overlay.style.display = 'block';
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      if ((e.key === 'Control' || e.key === 'Meta') && !_ctrlDragging) {
+        overlay.style.display = 'none';
+      }
+    });
+    // Also hide if window loses focus while Ctrl is held
+    window.addEventListener('blur', () => {
+      if (!_ctrlDragging) overlay.style.display = 'none';
+    });
+
+    overlay.addEventListener('mousedown', (e) => {
       e.preventDefault();
       e.stopPropagation();
       _ctrlDragging = true;
       _ctrlStartY = e.clientY;
       _ctrlStartX = e.clientX;
-      _ctrlStartTilt = _gmMap.getTilt() || 0;
       _ctrlStartHeading = _gmMap.getHeading() || 0;
-      mapDiv.style.cursor = 'grabbing';
-      // Disable map dragging while Ctrl+dragging
-      _gmMap.setOptions({ draggable: false });
-    }, { capture: true });
+      overlay.style.cursor = 'grabbing';
+    });
 
     window.addEventListener('mousemove', (e) => {
       if (!_ctrlDragging) return;
       e.preventDefault();
-      const deltaY = _ctrlStartY - e.clientY;  // Drag up = increase tilt
+      const deltaY = _ctrlStartY - e.clientY;  // Drag up = tilt
       const deltaX = e.clientX - _ctrlStartX;  // Drag right = rotate CW
 
-      // Tilt: 1px = ~0.5° (drag ~130px to go 0→67)
-      const newTilt = Math.max(0, Math.min(67, _ctrlStartTilt + deltaY * 0.5));
-      _gmMap.setTilt(Math.round(newTilt));
+      // In raster mode, setTilt only supports 0 or 45.
+      // Any upward drag > 20px = set to 45° (triggers auto-switch to Cesium)
+      if (deltaY > 20) {
+        _gmMap.setTilt(45);
+      } else if (deltaY < -20) {
+        _gmMap.setTilt(0);
+      }
 
-      // Heading: 1px = ~0.8° (drag ~450px for full rotation)
-      const newHeading = (_ctrlStartHeading + deltaX * 0.8) % 360;
+      // Heading: smooth rotation, 1px ≈ 0.8°
+      const newHeading = (_ctrlStartHeading + deltaX * 0.8 + 360) % 360;
       _gmMap.setHeading(newHeading);
     });
 
     window.addEventListener('mouseup', () => {
       if (!_ctrlDragging) return;
       _ctrlDragging = false;
-      mapDiv.style.cursor = '';
-      _gmMap.setOptions({ draggable: true });
-    });
-
-    // Visual hint: show cursor change on Ctrl key
-    mapDiv.addEventListener('keydown', (e) => {
-      if ((e.key === 'Control' || e.key === 'Meta') && _mode === 'google') {
-        mapDiv.style.cursor = 'grab';
-      }
-    });
-    mapDiv.addEventListener('keyup', (e) => {
-      if ((e.key === 'Control' || e.key === 'Meta') && !_ctrlDragging) {
-        mapDiv.style.cursor = '';
-      }
+      overlay.style.cursor = 'grab';
+      // Hide overlay if Ctrl no longer held
+      setTimeout(() => {
+        if (!_ctrlDragging) overlay.style.display = 'none';
+      }, 100);
     });
   }
 
