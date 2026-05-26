@@ -902,80 +902,58 @@ window.GEO = (() => {
 
     _gmMap.controls[google.maps.ControlPosition.LEFT_CENTER].push(panel);
 
-    // ── CUSTOM CTRL+DRAG TILT & ROTATE ──
-    // Google Maps swallows mouse events through its internal DOM layers.
-    // Solution: overlay a transparent div when Ctrl is held that captures
-    // all mouse input. Drag up = tilt to 45° (and auto-switch to Cesium).
-    // Drag sideways = rotate heading.
-    const mapDiv = _gmMap.getDiv();
-    const overlay = document.createElement('div');
-    overlay.id = 'gm-tilt-overlay';
-    overlay.style.cssText = [
-      'position:absolute', 'inset:0', 'z-index:50',
-      'cursor:grab', 'display:none',
-      'background:transparent'
-    ].join(';');
-    mapDiv.appendChild(overlay);
-
+    // ── CTRL+DRAG TILT & ROTATE ──
+    // Use window-level CAPTURE phase listeners so we fire BEFORE Google Maps.
+    // Ctrl+drag up on map area = tilt to 45° → auto-switch to Cesium 3D.
+    // Ctrl+drag sideways = rotate heading.
     let _ctrlDragging = false;
     let _ctrlStartY = 0;
     let _ctrlStartX = 0;
     let _ctrlStartHeading = 0;
 
-    // Show overlay when Ctrl is pressed, hide when released
-    window.addEventListener('keydown', (e) => {
-      if ((e.key === 'Control' || e.key === 'Meta') && _mode === 'google') {
-        overlay.style.display = 'block';
-      }
-    });
-    window.addEventListener('keyup', (e) => {
-      if ((e.key === 'Control' || e.key === 'Meta') && !_ctrlDragging) {
-        overlay.style.display = 'none';
-      }
-    });
-    // Also hide if window loses focus while Ctrl is held
-    window.addEventListener('blur', () => {
-      if (!_ctrlDragging) overlay.style.display = 'none';
-    });
+    function _isOverMap(e) {
+      const el = document.getElementById('three-canvas');
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return e.clientX >= r.left && e.clientX <= r.right &&
+             e.clientY >= r.top && e.clientY <= r.bottom;
+    }
 
-    overlay.addEventListener('mousedown', (e) => {
+    // Capture phase = fires before Google Maps handlers
+    window.addEventListener('mousedown', (e) => {
+      if (_mode !== 'google' || (!e.ctrlKey && !e.metaKey)) return;
+      if (!_isOverMap(e)) return;
       e.preventDefault();
-      e.stopPropagation();
+      e.stopImmediatePropagation();
       _ctrlDragging = true;
       _ctrlStartY = e.clientY;
       _ctrlStartX = e.clientX;
       _ctrlStartHeading = _gmMap.getHeading() || 0;
-      overlay.style.cursor = 'grabbing';
-    });
+      document.body.style.cursor = 'grabbing';
+    }, true);  // true = capture phase
 
     window.addEventListener('mousemove', (e) => {
       if (!_ctrlDragging) return;
       e.preventDefault();
-      const deltaY = _ctrlStartY - e.clientY;  // Drag up = tilt
-      const deltaX = e.clientX - _ctrlStartX;  // Drag right = rotate CW
+      e.stopImmediatePropagation();
+      const deltaY = _ctrlStartY - e.clientY;
+      const deltaX = e.clientX - _ctrlStartX;
 
-      // In raster mode, setTilt only supports 0 or 45.
-      // Any upward drag > 20px = set to 45° (triggers auto-switch to Cesium)
-      if (deltaY > 20) {
-        _gmMap.setTilt(45);
-      } else if (deltaY < -20) {
-        _gmMap.setTilt(0);
-      }
+      // Raster mode: setTilt only does 0 or 45.
+      // Drag up > 20px = tilt 45° → triggers auto-switch to Cesium
+      if (deltaY > 20) _gmMap.setTilt(45);
+      else if (deltaY < -20) _gmMap.setTilt(0);
 
-      // Heading: smooth rotation, 1px ≈ 0.8°
+      // Heading: smooth rotation
       const newHeading = (_ctrlStartHeading + deltaX * 0.8 + 360) % 360;
       _gmMap.setHeading(newHeading);
-    });
+    }, true);
 
     window.addEventListener('mouseup', () => {
       if (!_ctrlDragging) return;
       _ctrlDragging = false;
-      overlay.style.cursor = 'grab';
-      // Hide overlay if Ctrl no longer held
-      setTimeout(() => {
-        if (!_ctrlDragging) overlay.style.display = 'none';
-      }, 100);
-    });
+      document.body.style.cursor = '';
+    }, true);
   }
 
   function _fetchElevation(site) {
