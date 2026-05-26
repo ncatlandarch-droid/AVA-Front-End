@@ -847,8 +847,32 @@ window.GEO = (() => {
     slider.style.cssText = ['writing-mode:vertical-lr','direction:rtl','width:32px','height:80px','cursor:pointer','accent-color:#004684'].join(';');
     slider.title = 'Drag to tilt';
     slider.oninput = () => { _gmMap.setTilt(parseInt(slider.value)); tiltLabel.textContent = slider.value + '°'; };
+
+    // ── AUTO-SWITCH TO CESIUM 3D ON TILT ──
+    // When user tilts Google Maps past 45° (Ctrl+drag or slider),
+    // seamlessly switch to Cesium for the real 3D experience.
+    let _tiltSwitchCooldown = false;
     google.maps.event.addListener(_gmMap, 'tilt_changed', () => {
-      slider.value = Math.round(_gmMap.getTilt()); tiltLabel.textContent = slider.value + '°';
+      const tilt = Math.round(_gmMap.getTilt());
+      slider.value = tilt; tiltLabel.textContent = tilt + '°';
+
+      // Auto-switch threshold: tilt ≥ 45° + Cesium available + not on cooldown
+      if (tilt >= 45 && _cemViewer && !_tiltSwitchCooldown) {
+        _tiltSwitchCooldown = true;
+        console.log(`[AVA GEO] Tilt ${tilt}° detected — auto-switching to Cesium 3D`);
+
+        // Brief delay so user sees the tilt before the transition
+        setTimeout(() => {
+          if (_mode === 'google') {
+            switchMode('cesium');
+            if (typeof showToast === 'function') {
+              showToast('Entering 3D view — tilt detected', 'info');
+            }
+          }
+          // Cooldown prevents re-triggering when switching back to Google Maps
+          setTimeout(() => { _tiltSwitchCooldown = false; }, 3000);
+        }, 400);
+      }
     });
 
     panel.appendChild(_btn('keyboard_arrow_up', 'Tilt up', () => {
