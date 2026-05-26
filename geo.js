@@ -901,6 +901,65 @@ window.GEO = (() => {
     }));
 
     _gmMap.controls[google.maps.ControlPosition.LEFT_CENTER].push(panel);
+
+    // ── CUSTOM CTRL+DRAG TILT & ROTATE ──
+    // Google Maps raster mode doesn't support gesture-based tilt.
+    // We intercept Ctrl+drag ourselves and programmatically set tilt/heading.
+    // Vertical drag = tilt (0-67°), Horizontal drag = rotate heading.
+    const mapDiv = _gmMap.getDiv();
+    let _ctrlDragging = false;
+    let _ctrlStartY = 0;
+    let _ctrlStartX = 0;
+    let _ctrlStartTilt = 0;
+    let _ctrlStartHeading = 0;
+
+    mapDiv.addEventListener('mousedown', (e) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      e.stopPropagation();
+      _ctrlDragging = true;
+      _ctrlStartY = e.clientY;
+      _ctrlStartX = e.clientX;
+      _ctrlStartTilt = _gmMap.getTilt() || 0;
+      _ctrlStartHeading = _gmMap.getHeading() || 0;
+      mapDiv.style.cursor = 'grabbing';
+      // Disable map dragging while Ctrl+dragging
+      _gmMap.setOptions({ draggable: false });
+    }, { capture: true });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!_ctrlDragging) return;
+      e.preventDefault();
+      const deltaY = _ctrlStartY - e.clientY;  // Drag up = increase tilt
+      const deltaX = e.clientX - _ctrlStartX;  // Drag right = rotate CW
+
+      // Tilt: 1px = ~0.5° (drag ~130px to go 0→67)
+      const newTilt = Math.max(0, Math.min(67, _ctrlStartTilt + deltaY * 0.5));
+      _gmMap.setTilt(Math.round(newTilt));
+
+      // Heading: 1px = ~0.8° (drag ~450px for full rotation)
+      const newHeading = (_ctrlStartHeading + deltaX * 0.8) % 360;
+      _gmMap.setHeading(newHeading);
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!_ctrlDragging) return;
+      _ctrlDragging = false;
+      mapDiv.style.cursor = '';
+      _gmMap.setOptions({ draggable: true });
+    });
+
+    // Visual hint: show cursor change on Ctrl key
+    mapDiv.addEventListener('keydown', (e) => {
+      if ((e.key === 'Control' || e.key === 'Meta') && _mode === 'google') {
+        mapDiv.style.cursor = 'grab';
+      }
+    });
+    mapDiv.addEventListener('keyup', (e) => {
+      if ((e.key === 'Control' || e.key === 'Meta') && !_ctrlDragging) {
+        mapDiv.style.cursor = '';
+      }
+    });
   }
 
   function _fetchElevation(site) {
