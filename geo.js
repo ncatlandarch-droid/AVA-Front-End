@@ -838,78 +838,43 @@ window.GEO = (() => {
       return b;
     }
 
-    const tiltLabel = document.createElement('div');
-    tiltLabel.style.cssText = 'font:600 10px/1 Inter,sans-serif;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.6);letter-spacing:.5px';
-    tiltLabel.textContent = '0°';
-
-    const slider = document.createElement('input');
-    slider.type  = 'range'; slider.min = '0'; slider.max = '67'; slider.step = '5'; slider.value = '0';
-    slider.style.cssText = ['writing-mode:vertical-lr','direction:rtl','width:32px','height:80px','cursor:pointer','accent-color:#004684'].join(';');
-    slider.title = 'Drag to tilt';
-    slider.oninput = () => { _gmMap.setTilt(parseInt(slider.value)); tiltLabel.textContent = slider.value + '°'; };
-
-    // ── AUTO-SWITCH TO CESIUM 3D ON TILT ──
-    // When user tilts Google Maps past 45° (Ctrl+drag or slider),
-    // seamlessly switch to Cesium for the real 3D experience.
-    let _tiltSwitchCooldown = false;
-    google.maps.event.addListener(_gmMap, 'tilt_changed', () => {
-      const tilt = Math.round(_gmMap.getTilt());
-      slider.value = tilt; tiltLabel.textContent = tilt + '°';
-
-      // Auto-switch threshold: tilt ≥ 45° + Cesium available + not on cooldown
-      if (tilt >= 45 && _cemViewer && !_tiltSwitchCooldown) {
-        _tiltSwitchCooldown = true;
-        console.log(`[AVA GEO] Tilt ${tilt}° detected — auto-switching to Cesium 3D`);
-
-        // Brief delay so user sees the tilt before the transition
-        setTimeout(() => {
-          if (_mode === 'google') {
-            switchMode('cesium');
-            if (typeof showToast === 'function') {
-              showToast('Entering 3D view — tilt detected', 'info');
-            }
-          }
-          // Cooldown prevents re-triggering when switching back to Google Maps
-          setTimeout(() => { _tiltSwitchCooldown = false; }, 3000);
-        }, 400);
-      }
-    });
-
-    panel.appendChild(_btn('keyboard_arrow_up', 'Tilt up', () => {
-      const t = Math.min(67, (_gmMap.getTilt() || 0) + 15);
-      _gmMap.setTilt(t); tiltLabel.textContent = t + '°'; slider.value = t;
-    }));
-    panel.appendChild(slider);
-    panel.appendChild(tiltLabel);
-    panel.appendChild(_btn('keyboard_arrow_down', 'Tilt down', () => {
-      const t = Math.max(0, (_gmMap.getTilt() || 0) - 15);
-      _gmMap.setTilt(t); tiltLabel.textContent = t + '°'; slider.value = t;
-    }));
+    // NOTE: Google deprecated 45° tilt on raster maps (API v3.65, 2025).
+    // Tilt slider removed — it no longer does anything.
+    // Instead: Ctrl+drag up = switch to Cesium 3D immediately.
 
     function _sep() {
       const d = document.createElement('div');
       d.style.cssText = 'width:28px;height:1px;background:rgba(255,255,255,0.4)';
       return d;
     }
-    panel.appendChild(_sep());
+
+    // Rotate controls still work on raster maps
     panel.appendChild(_btn('rotate_left',  'Rotate CCW', () => { _gmMap.setHeading((_gmMap.getHeading() - 15 + 360) % 360); }));
     panel.appendChild(_btn('rotate_right', 'Rotate CW',  () => { _gmMap.setHeading((_gmMap.getHeading() + 15) % 360); }));
     panel.appendChild(_sep());
-    panel.appendChild(_btn('explore', 'Reset north', () => {
-      _gmMap.setHeading(0); _gmMap.setTilt(0);
-      slider.value = '0'; tiltLabel.textContent = '0°';
-    }));
+    panel.appendChild(_btn('explore', 'Reset north', () => { _gmMap.setHeading(0); }));
+
+    // 3D button — explicit switch to Cesium
+    if (_cesiumToken) {
+      panel.appendChild(_sep());
+      const cesiumBtn = _btn('view_in_ar', 'Enter 3D View (or Ctrl+drag up)', () => { switchMode('cesium'); });
+      cesiumBtn.style.background = 'linear-gradient(135deg,#004684,#002B52)';
+      cesiumBtn.style.color = '#FDB927';
+      cesiumBtn.style.border = '1px solid rgba(253,185,39,0.4)';
+      panel.appendChild(cesiumBtn);
+    }
 
     _gmMap.controls[google.maps.ControlPosition.LEFT_CENTER].push(panel);
 
-    // ── CTRL+DRAG TILT & ROTATE ──
-    // Use window-level CAPTURE phase listeners so we fire BEFORE Google Maps.
-    // Ctrl+drag up on map area = tilt to 45° → auto-switch to Cesium 3D.
-    // Ctrl+drag sideways = rotate heading.
+    // ── CTRL+DRAG → CESIUM 3D ──
+    // Ctrl+drag up anywhere on the map = switch to Cesium 3D.
+    // This replaces the broken tilt gesture (Google killed raster tilt).
+    // The user's intent when tilting is "show me 3D" — so we go straight there.
     let _ctrlDragging = false;
     let _ctrlStartY = 0;
     let _ctrlStartX = 0;
     let _ctrlStartHeading = 0;
+    let _switchTriggered = false;
 
     function _isOverMap(e) {
       const el = document.getElementById('three-canvas');
@@ -926,11 +891,12 @@ window.GEO = (() => {
       e.preventDefault();
       e.stopImmediatePropagation();
       _ctrlDragging = true;
+      _switchTriggered = false;
       _ctrlStartY = e.clientY;
       _ctrlStartX = e.clientX;
       _ctrlStartHeading = _gmMap.getHeading() || 0;
       document.body.style.cursor = 'grabbing';
-    }, true);  // true = capture phase
+    }, true);
 
     window.addEventListener('mousemove', (e) => {
       if (!_ctrlDragging) return;
@@ -939,14 +905,24 @@ window.GEO = (() => {
       const deltaY = _ctrlStartY - e.clientY;
       const deltaX = e.clientX - _ctrlStartX;
 
-      // Raster mode: setTilt only does 0 or 45.
-      // Drag up > 20px = tilt 45° → triggers auto-switch to Cesium
-      if (deltaY > 20) _gmMap.setTilt(45);
-      else if (deltaY < -20) _gmMap.setTilt(0);
+      // Drag up > 30px = switch to Cesium 3D
+      if (deltaY > 30 && !_switchTriggered && _cemViewer) {
+        _switchTriggered = true;
+        _ctrlDragging = false;
+        document.body.style.cursor = '';
+        console.log('[AVA GEO] Ctrl+drag up detected — switching to Cesium 3D');
+        switchMode('cesium');
+        if (typeof showToast === 'function') {
+          showToast('Entering 3D view', 'info');
+        }
+        return;
+      }
 
-      // Heading: smooth rotation
-      const newHeading = (_ctrlStartHeading + deltaX * 0.8 + 360) % 360;
-      _gmMap.setHeading(newHeading);
+      // Sideways drag = rotate heading (still works on raster maps)
+      if (Math.abs(deltaX) > 5) {
+        const newHeading = (_ctrlStartHeading + deltaX * 0.8 + 360) % 360;
+        _gmMap.setHeading(newHeading);
+      }
     }, true);
 
     window.addEventListener('mouseup', () => {
