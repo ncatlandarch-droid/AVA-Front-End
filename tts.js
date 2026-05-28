@@ -3,7 +3,7 @@
    Now powered by ThinkAvatarTTS universal module v1.1.
    AVA-specific: coaching text, language-aware prompts, SITES v2 context.
    Audio engine: ThinkAvatarTTS handles queue, PCM→WAV, Web Audio, speaking ring.
-   Voice: Kore (warm female, natural)
+   Voice: Leda (professional female, calm authority)
 
    INTERACTION PATTERN (standard across all Think! avatars):
      Click avatar     → She speaks contextual greeting
@@ -58,7 +58,7 @@ window.AVA_TTS = (() => {
 
     _engine = ThinkAvatarTTS.create({
       name: 'AVA',
-      voice: 'Kore',
+      voice: 'Leda',
       avatarId: null,                    // AVA uses class-based targeting (multiple avatars)
       muteKey: 'ava-voice-muted',
       proxyUrl: '/.netlify/functions/gemini-tts-proxy',  // Server-side — no client key needed
@@ -87,7 +87,7 @@ window.AVA_TTS = (() => {
       el.textContent = _engine.isMuted() ? '🔇' : '🔊';
     });
 
-    console.log('[AVA TTS] Initialized via ThinkAvatarTTS v1.1 (Kore voice, server proxy)');
+    console.log('[AVA TTS] Initialized via ThinkAvatarTTS v1.1 (Leda voice, server proxy)');
   }
 
   /* ══════════════════════════════════════════════════════════════
