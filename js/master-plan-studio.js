@@ -232,10 +232,10 @@ Return ONLY the raw GeoJSON FeatureCollection — no markdown, no explanation, n
     let res = await fetch('/.netlify/functions/gemini-proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'gemini-2.5-flash', payload: geminiPayload }),
+      body: JSON.stringify({ model: 'gemini-3.5-flash', payload: geminiPayload }),
     }).catch(() => null);
     if (!res?.ok && apiKey) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
       res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiPayload) });
     }
     if (!res?.ok) throw new Error(`Gemini API ${res?.status || 'unavailable'}`);
