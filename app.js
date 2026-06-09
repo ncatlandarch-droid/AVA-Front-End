@@ -14,7 +14,7 @@ let state = {
   gmapsKey:     localStorage.getItem('ava_gmaps_key')      || '',
   cesiumToken:  localStorage.getItem('ava_cesium_token')   || '',
   geminiKey:  localStorage.getItem('ava_gemini_key') || '',
-  geminiModel: localStorage.getItem('ava_gemini_model') || 'gemini-2.5-flash',
+  geminiModel: localStorage.getItem('ava_gemini_model') || 'gemini-2.5-flash-image',
   firebaseConfig: null,
   currentScore: 0, sectionScores: [0,0,0,0,0,0,0,0,0,0], currentTier: 'none',
   currentPrompt: '', generatedImageBase64: null, generatedImageMimeType: 'image/png',
@@ -1141,8 +1141,8 @@ function loadSettings() {
   state.cesiumToken = localStorage.getItem('ava_cesium_token')   || '';
   state.geminiKey = localStorage.getItem('ava_gemini_key') || '';
   let cachedModel = localStorage.getItem('ava_gemini_model');
-  if (cachedModel && (cachedModel.includes('preview-image-generation') || cachedModel.includes('gemini-2.'))) cachedModel = 'gemini-2.5-flash';
-  state.geminiModel = cachedModel || 'gemini-2.5-flash';
+  if (cachedModel && (cachedModel.includes('preview-image-generation') || cachedModel.includes('gemini-2.') || cachedModel.includes('gemini-3.5'))) cachedModel = null;
+  state.geminiModel = cachedModel || 'gemini-2.5-flash-image';
 
   // Use a user-saved override first; otherwise fetch config from the server
   // (which reads FIREBASE_* env vars — keeping secrets out of source control).

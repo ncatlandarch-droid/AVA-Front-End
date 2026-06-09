@@ -266,7 +266,7 @@ ${isFirst ? 'Generate a STUNNING hyperrealistic photographic modification showin
 }
 
 async function callGeminiAPI(prompt, imageBase64, referenceImageBase64, refMimeType) {
-  const models = [...new Set([state.geminiModel, 'gemini-2.5-flash'])];
+  const models = [...new Set([state.geminiModel, 'gemini-2.5-flash-image'])];
   const payload = () => {
     const parts = [
       { text: prompt },
