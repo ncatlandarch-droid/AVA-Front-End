@@ -266,7 +266,7 @@ ${isFirst ? 'Generate a STUNNING hyperrealistic photographic modification showin
 }
 
 async function callGeminiAPI(prompt, imageBase64, referenceImageBase64, refMimeType) {
-  const models = [...new Set([state.geminiModel, 'gemini-3.5-flash'])];
+  const models = [...new Set([state.geminiModel, 'gemini-2.5-flash'])];
   const payload = () => {
     const parts = [
       { text: prompt },
@@ -350,7 +350,7 @@ async function imageToBase64(src) {
 // ---------------------------------------------------------------------------
 
 async function callGeminiTextOnly(prompt, imageBase64) {
-  const models = ['gemini-3.5-flash'];
+  const models = ['gemini-2.5-flash'];
   const mkPayload = () => {
     const parts = [{ text: prompt }];
     if (imageBase64) parts.push({ inlineData: { mimeType: 'image/png', data: imageBase64 } });
@@ -496,7 +496,7 @@ CARBON_BASELINE: [0-100]`;
     };
 
     const isLocal = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    for (const model of ['gemini-3.5-flash']) {
+    for (const model of ['gemini-2.5-flash']) {
       try {
         let resp;
         if (!isLocal) {
