@@ -121,9 +121,10 @@ const ADMIN = {
 
   _updateAdminVisibility() {
     const btn = document.getElementById('btnAdminProjects');
-    if (!btn) return;
+    const settingsBtn = document.getElementById('btnSettings');
     const show = typeof COMMUNITY !== 'undefined' && COMMUNITY.isAdmin();
-    btn.style.display = show ? '' : 'none';
+    if (btn) btn.style.display = show ? '' : 'none';
+    if (settingsBtn) settingsBtn.style.display = show ? '' : 'none';
   },
 
   /* ═══════ MERGE FIRESTORE PROJECTS INTO SITE_CONFIGS ═══════ */
