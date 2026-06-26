@@ -68,6 +68,15 @@ window.GEO_LAYERS = (() => {
       style: { stroke: '#1565C0', fill: 'rgba(33,150,243,0.12)',  strokeWidth: 1.5 } },
     { id: 'wetlands',   label: 'Wetlands (NWI)',  icon: 'water_drop', accent: '#00897B', type: 'geojson',
       style: { stroke: '#00695C', fill: 'rgba(0,137,123,0.12)',  strokeWidth: 1 } },
+    /* ── Earth Engine Layers ────────────────────────────────── */
+    { id: 'buildings', label: 'Building Footprints', icon: 'apartment', accent: '#FF6B35', type: 'geojson',
+      style: { stroke: '#FF6B35', fill: 'rgba(255,107,53,0.25)', strokeWidth: 2 }, proxy: 'ee' },
+    { id: 'dem',       label: 'Elevation (DEM)',     icon: 'terrain',   accent: '#4CAF50', type: 'tiles',
+      style: {}, proxy: 'ee' },
+    { id: 'aspect',    label: 'Sun Exposure',        icon: 'wb_sunny',  accent: '#FFC107', type: 'tiles',
+      style: {}, proxy: 'ee' },
+    { id: 'slope',     label: 'Slope Analysis',      icon: 'signal_cellular_alt', accent: '#E91E63', type: 'tiles',
+      style: {}, proxy: 'ee' },
   ];
 
   // Runtime state per layer
@@ -136,30 +145,72 @@ window.GEO_LAYERS = (() => {
           _toast(`Zoom in to load ${def.label}`, 'info');
           throw new Error('too wide');
         }
+        const isEE = def.proxy === 'ee';
+        const proxyUrl = isEE ? '/.netlify/functions/ee-proxy' : PROXY;
+        const paramKey = isEE ? 'layer' : 'service';
         const bboxStr = `${bbox.west},${bbox.south},${bbox.east},${bbox.north}`;
-        const resp = await fetch(`${PROXY}?service=${layerId}&bbox=${bboxStr}`);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const geojson = await resp.json();
-        if (!geojson?.features?.length) {
-          _toast(`No ${def.label} data in this area`, 'info');
-          throw new Error('empty');
+        const resp = await fetch(`${proxyUrl}?${paramKey}=${layerId}&bbox=${bboxStr}`);
+        if (!resp.ok) {
+          const errBody = await resp.json().catch(() => ({}));
+          if (errBody.setup_url) {
+            _toast(`${def.label} — Earth Engine not configured yet`, 'info');
+            throw new Error('ee_not_configured');
+          }
+          throw new Error(`HTTP ${resp.status}`);
         }
-        if (_inGmMode()) {
-          st.ref = _addGmLayer(layerId, geojson, def.style);
-          if (layerId === 'parcels')   { _startGmParcelRefresh(); _gmParcelLastBbox = bbox; }
-          if (layerId === 'zoning')   { _startGmZoningRefresh(); _gmZoningLastBbox = bbox; }
-          if (layerId === 'soils')    { _startGmSoilsRefresh();  _gmSoilsLastBbox  = bbox; }
-          if (layerId === 'contours')   { _contoursRefresh.start();   _contoursRefresh.setBbox(bbox);   }
-          if (layerId === 'hydrology')  { _hydrologyRefresh.start();  _hydrologyRefresh.setBbox(bbox);  }
-          if (layerId === 'floodplain') { _floodplainRefresh.start(); _floodplainRefresh.setBbox(bbox); }
-          if (layerId === 'wetlands')   { _wetlandsRefresh.start();   _wetlandsRefresh.setBbox(bbox);   }
-          if (layerId === 'overlay')    { _overlayRefresh.start();    _overlayRefresh.setBbox(bbox);    }
-          if (layerId === 'historic')   { _historicRefresh.start();   _historicRefresh.setBbox(bbox);   }
-          if (layerId === 'futurelu')   { _futureLuRefresh.start();   _futureLuRefresh.setBbox(bbox);   }
-        } else {
-          st.ref = await _addGeoJson(layerId, geojson, def.style);
+        const data = await resp.json();
+
+        // Tile overlay (DEM, aspect, slope)
+        if (def.type === 'tiles' && data.tileUrl) {
+          if (_inGmMode()) {
+            const tileLayer = new google.maps.ImageMapType({
+              getTileUrl: (coord, zoom) => data.tileUrl
+                .replace('{z}', zoom).replace('{x}', coord.x).replace('{y}', coord.y),
+              tileSize: new google.maps.Size(256, 256),
+              opacity: st.opacity,
+              name: def.label
+            });
+            _gmMap.overlayMapTypes.push(tileLayer);
+            st.ref = tileLayer;
+            st._tileIndex = _gmMap.overlayMapTypes.getLength() - 1;
+            _toast(`${def.label} loaded`, 'success');
+          } else {
+            // Cesium tile overlay
+            if (_viewer) {
+              const imagery = _viewer.scene.imageryLayers.addImageryProvider(
+                new Cesium.UrlTemplateImageryProvider({ url: data.tileUrl })
+              );
+              imagery.alpha = st.opacity;
+              st.ref = imagery;
+              _toast(`${def.label} loaded`, 'success');
+            }
+          }
         }
-        _toast(`${def.label} loaded — ${geojson.features.length} features`, 'success');
+        // GeoJSON layer (buildings)
+        else {
+          const geojson = data;
+          if (!geojson?.features?.length) {
+            _toast(`No ${def.label} data in this area`, 'info');
+            throw new Error('empty');
+          }
+          if (_inGmMode()) {
+            st.ref = _addGmLayer(layerId, geojson, def.style);
+            if (layerId === 'parcels')   { _startGmParcelRefresh(); _gmParcelLastBbox = bbox; }
+            if (layerId === 'zoning')   { _startGmZoningRefresh(); _gmZoningLastBbox = bbox; }
+            if (layerId === 'soils')    { _startGmSoilsRefresh();  _gmSoilsLastBbox  = bbox; }
+            if (layerId === 'contours')   { _contoursRefresh.start();   _contoursRefresh.setBbox(bbox);   }
+            if (layerId === 'hydrology')  { _hydrologyRefresh.start();  _hydrologyRefresh.setBbox(bbox);  }
+            if (layerId === 'floodplain') { _floodplainRefresh.start(); _floodplainRefresh.setBbox(bbox); }
+            if (layerId === 'wetlands')   { _wetlandsRefresh.start();   _wetlandsRefresh.setBbox(bbox);   }
+            if (layerId === 'overlay')    { _overlayRefresh.start();    _overlayRefresh.setBbox(bbox);    }
+            if (layerId === 'historic')   { _historicRefresh.start();   _historicRefresh.setBbox(bbox);   }
+            if (layerId === 'futurelu')   { _futureLuRefresh.start();   _futureLuRefresh.setBbox(bbox);   }
+            if (layerId === 'buildings')  { _buildingsRefresh.start();  _buildingsRefresh.setBbox(bbox);  }
+          } else {
+            st.ref = await _addGeoJson(layerId, geojson, def.style);
+          }
+          _toast(`${def.label} loaded — ${geojson.features.length} features`, 'success');
+        }
       }
       st.active = true;
     } catch (e) {
@@ -178,10 +229,19 @@ window.GEO_LAYERS = (() => {
   }
 
   function _deactivate(layerId) {
+    const def = LAYER_DEFS.find(d => d.id === layerId);
     const st = _st[layerId];
     if (layerId === 'roads') {
       if (_inGmMode()) { _gmMap.setOptions({ styles: [] }); }
       else if (st.ref) { _viewer.imageryLayers.remove(st.ref); }
+    } else if (def?.type === 'tiles' && st.ref) {
+      // Remove tile overlay (DEM, aspect, slope)
+      if (_inGmMode() && typeof st._tileIndex === 'number') {
+        _gmMap.overlayMapTypes.removeAt(st._tileIndex);
+        st._tileIndex = undefined;
+      } else if (_viewer && st.ref) {
+        _viewer.scene.imageryLayers.remove(st.ref);
+      }
     } else if (st.ref && typeof st.ref.setMap === 'function') {
       st.ref.setMap(null);
       if (layerId === 'parcels')   _stopGmParcelRefresh();
@@ -194,6 +254,7 @@ window.GEO_LAYERS = (() => {
       if (layerId === 'overlay')    _overlayRefresh.stop();
       if (layerId === 'historic')   _historicRefresh.stop();
       if (layerId === 'futurelu')   _futureLuRefresh.stop();
+      if (layerId === 'buildings')  _buildingsRefresh.stop();
     } else {
       if (st.ref) _viewer.dataSources.remove(st.ref, true);
     }
@@ -1301,6 +1362,7 @@ window.GEO_LAYERS = (() => {
   const _overlayRefresh    = _makeGmRefresh('overlay',    { v: null }, { v: null });
   const _historicRefresh   = _makeGmRefresh('historic',   { v: null }, { v: null });
   const _futureLuRefresh   = _makeGmRefresh('futurelu',   { v: null }, { v: null });
+  const _buildingsRefresh  = _makeGmRefresh('buildings',  { v: null }, { v: null });
 
   function _startGmParcelRefresh() {
     if (_gmParcelIdleListener) return;
