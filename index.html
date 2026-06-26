@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>AVA — Adaptive Visualization Assistant · Think! Design and Planning, LLC</title>
   <meta name="description" content="AVA (Adaptive Visualization Assistant) — 3D AI visualization and SITES v2 design engine for landscape architecture. Spatial intelligence for understanding, simulating, and communicating landscape change. AI-powered design, sustainability scoring, and community-driven planning.">
 
@@ -737,6 +737,94 @@
   <script src="js/ava-commands.js"></script>
   <script src="app.js"></script>
   <script src="cre-publish.js"></script>
+  <!-- Mobile AVA Chat FAB + Slide-up Panel -->
+  <button class="ava-mobile-fab" id="avaMobileFab" onclick="toggleMobileChat()" aria-label="Chat with AVA">
+    <span class="material-symbols-outlined">chat</span>
+    <div class="ava-mobile-fab-badge" id="avaMobileBadge"></div>
+  </button>
+  <div class="ava-mobile-chat" id="avaMobileChat">
+    <div class="ava-mobile-chat-handle" onclick="toggleMobileChat()"></div>
+    <div class="ava-mobile-chat-header">
+      <div class="ava-mobile-chat-header-left">
+        <img class="ava-mobile-chat-avatar" src="baselines/Erin%20and%20Chris%20AVA.png" alt="AVA">
+        <div>
+          <div class="ava-mobile-chat-name">AVA</div>
+          <div class="ava-mobile-chat-role">Adaptive Visualization Assistant</div>
+        </div>
+      </div>
+      <button class="ava-mobile-chat-close" onclick="toggleMobileChat()" aria-label="Close chat">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="ava-mobile-chat-messages" id="avaMobileMsgs"></div>
+    <div class="ava-mobile-chat-input">
+      <div class="ava-input-row">
+        <textarea id="avaMobileChatInput" placeholder="Ask AVA anything..." rows="2"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();handleMobileChat()}"></textarea>
+        <button class="ava-send-btn" onclick="handleMobileChat()">
+          <span class="material-symbols-outlined">send</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <script>
+  /* Mobile AVA Chat — syncs with desktop sidebar chat */
+  function toggleMobileChat() {
+    const panel = document.getElementById('avaMobileChat');
+    const fab = document.getElementById('avaMobileFab');
+    const badge = document.getElementById('avaMobileBadge');
+    const isOpen = panel.classList.toggle('open');
+    fab.style.display = isOpen ? 'none' : '';
+    badge.style.display = 'none';
+    if (isOpen) {
+      // Sync messages from desktop chat to mobile
+      _syncMobileMessages();
+      const input = document.getElementById('avaMobileChatInput');
+      setTimeout(() => input.focus(), 400);
+    }
+  }
+  function _syncMobileMessages() {
+    const src = document.getElementById('avaMapMessages');
+    const dst = document.getElementById('avaMobileMsgs');
+    if (src && dst) { dst.innerHTML = src.innerHTML; dst.scrollTop = dst.scrollHeight; }
+  }
+  function handleMobileChat() {
+    const input = document.getElementById('avaMobileChatInput');
+    const val = input.value.trim();
+    if (!val) return;
+    // Copy to desktop input and trigger desktop handler
+    const deskInput = document.getElementById('avaMapChatInput');
+    if (deskInput) { deskInput.value = val; }
+    input.value = '';
+    if (typeof handleMapChat === 'function') handleMapChat();
+    // Sync after response with slight delay
+    setTimeout(_syncMobileMessages, 1500);
+    setTimeout(_syncMobileMessages, 4000);
+  }
+  // Show badge when new messages arrive and mobile chat is closed
+  const _origAppendMsg = window._appendMapMessage;
+  if (typeof _origAppendMsg === 'function') {
+    window._appendMapMessage = function() {
+      _origAppendMsg.apply(this, arguments);
+      const panel = document.getElementById('avaMobileChat');
+      if (panel && !panel.classList.contains('open') && window.innerWidth <= 900) {
+        document.getElementById('avaMobileBadge').style.display = 'block';
+      }
+      if (panel && panel.classList.contains('open')) _syncMobileMessages();
+    };
+  }
+  // Also watch for mutations on desktop messages to keep mobile in sync
+  const _mobileObserver = new MutationObserver(() => {
+    const panel = document.getElementById('avaMobileChat');
+    if (panel && panel.classList.contains('open')) _syncMobileMessages();
+    else if (window.innerWidth <= 900) {
+      const badge = document.getElementById('avaMobileBadge');
+      if (badge) badge.style.display = 'block';
+    }
+  });
+  const _desktopMsgs = document.getElementById('avaMapMessages');
+  if (_desktopMsgs) _mobileObserver.observe(_desktopMsgs, { childList: true, subtree: true });
+  </script>
 
   <!-- Legal Footer -->
   <div class="think-footer" data-i18n="footer.legal">© 2026 Think! Design and Planning, LLC. All Rights Reserved. &nbsp;·&nbsp; AVA is a proprietary product of Think! Design and Planning, LLC.</div>

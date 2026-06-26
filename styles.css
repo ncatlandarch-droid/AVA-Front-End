@@ -2338,3 +2338,254 @@ body.workspace-active .projects-gallery-view { display: none !important; }
   padding: 8px 0;
   font-style: italic;
 }
+
+/* ==============================================================
+   MOBILE OPTIMIZATION — AVA V.4
+   Think! Design and Planning, LLC
+   Ensures full functionality on iPhone (375px+) and tablets
+   ============================================================== */
+
+/* ── Floating AVA Chat FAB (visible on mobile when sidebar hidden) ── */
+.ava-mobile-fab {
+  display: none; /* only shown via media query */
+  position: fixed; bottom: 20px; right: 20px; z-index: 300;
+  width: 60px; height: 60px; border-radius: 50%; border: none;
+  background: linear-gradient(135deg, #003087 0%, #001a4d 100%);
+  box-shadow: 0 4px 20px rgba(0,48,135,0.5), 0 0 0 3px var(--ava-gold);
+  cursor: pointer; transition: all 0.3s ease;
+  align-items: center; justify-content: center;
+}
+.ava-mobile-fab:hover { transform: scale(1.08); }
+.ava-mobile-fab:active { transform: scale(0.95); }
+.ava-mobile-fab .material-symbols-outlined {
+  font-size: 28px; color: var(--ava-gold);
+}
+.ava-mobile-fab-badge {
+  position: absolute; top: -2px; right: -2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #E91E63; border: 2px solid #003087;
+  display: none; /* shown when there are unread messages */
+}
+
+/* ── Mobile Chat Slide-Up Panel ── */
+.ava-mobile-chat {
+  display: none; /* only shown via media query */
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 250;
+  height: 70vh; max-height: 600px;
+  background: var(--bg-light);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.2);
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  flex-direction: column; overflow: hidden;
+}
+.ava-mobile-chat.open {
+  transform: translateY(0);
+}
+.ava-mobile-chat-handle {
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px; flex-shrink: 0; cursor: grab;
+}
+.ava-mobile-chat-handle::before {
+  content: ''; width: 40px; height: 4px; border-radius: 2px;
+  background: rgba(0,0,0,0.15);
+}
+.ava-mobile-chat-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px 12px; border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+.ava-mobile-chat-header-left {
+  display: flex; align-items: center; gap: 10px;
+}
+.ava-mobile-chat-avatar {
+  width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--ava-gold);
+}
+.ava-mobile-chat-name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+.ava-mobile-chat-role { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.ava-mobile-chat-close {
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  background: rgba(0,0,0,0.05); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.ava-mobile-chat-close .material-symbols-outlined { font-size: 20px; }
+.ava-mobile-chat-messages {
+  flex: 1; overflow-y: auto; padding: 12px 16px;
+  -webkit-overflow-scrolling: touch;
+}
+.ava-mobile-chat-input {
+  padding: 12px 16px; border-top: 1px solid var(--border-color);
+  flex-shrink: 0; background: var(--bg-surface);
+}
+
+/* ── Tablet breakpoint (≤900px) — enhanced ── */
+@media (max-width: 900px) {
+  /* Show mobile FAB and chat panel */
+  .ava-mobile-fab { display: flex; }
+  .ava-mobile-chat { display: flex; }
+
+  /* Header adjustments */
+  .top-bar { padding: 8px 12px 10px; height: 60px; }
+  .top-bar-brand-name { font-size: 20px; }
+
+  /* Avatar sizing */
+  .ava-avatar-wrapper, .ava-portrait-img { width: 200px !important; height: 200px !important; }
+
+  /* Design workspace — better stacking */
+  .sheet-content { gap: 0; }
+  .sheet-col-chat, .sheet-col-canvas, .sheet-col-score {
+    min-height: 300px;
+  }
+
+  /* MPS overlay — full width on tablet */
+  .mps-overlay { width: min(440px, calc(100vw - 24px)); }
+
+  /* GIS layer panel */
+  .ava-layer-panel { width: 180px; top: 48px; right: 8px; }
+
+  /* View toggle */
+  .view-toggle { left: 8px; }
+
+  /* Cost modal */
+  .cost-modal-card { max-width: 95vw; }
+}
+
+/* ── Phone breakpoint (≤480px) ── */
+@media (max-width: 480px) {
+  /* Header — ultra-compact */
+  .top-bar {
+    padding: 6px 8px 8px; height: 52px;
+  }
+  .top-bar-brand-name { font-size: 18px; gap: 2px; }
+  .top-bar-at-logo { display: none; }
+  .top-bar-logo-separator { display: none; }
+  .top-bar-subtitle { display: none; }
+  .top-bar-brand-name .ava-word { display: none; }
+  .top-bar-center { display: none; }
+  .top-bar .think-logo-img { height: 28px; }
+
+  /* Right buttons — smaller */
+  .top-btn { width: 32px; height: 32px; }
+  .top-btn .material-symbols-outlined { font-size: 18px; }
+  .top-bar-right { gap: 2px; }
+
+  /* App workspace adjusts for shorter header */
+  .app-workspace { top: 56px; }
+  .projects-gallery-view { padding-top: 56px; }
+
+  /* Map workspace */
+  .map-workspace { grid-template-columns: 1fr; }
+  .map-col-ava { display: none; }
+
+  /* Mobile FAB adjust */
+  .ava-mobile-fab { width: 52px; height: 52px; bottom: 16px; right: 16px; }
+  .ava-mobile-fab .material-symbols-outlined { font-size: 24px; }
+
+  /* Mobile chat — taller */
+  .ava-mobile-chat { height: 80vh; max-height: none; border-radius: 16px 16px 0 0; }
+
+  /* MPS overlay — full screen on phone */
+  .mps-overlay {
+    width: 100vw; right: -100vw; top: 52px; bottom: 0;
+    border-radius: 0;
+  }
+  .mps-overlay.mps-open { right: 0; }
+
+  /* GIS layer panel — bottom sheet style */
+  .ava-layer-panel {
+    position: fixed; bottom: 80px; right: 8px; left: 8px;
+    width: auto; top: auto; max-height: 50vh;
+    border-radius: var(--radius-lg);
+  }
+
+  /* Modal cards */
+  .modal-card { max-width: 100vw; margin: 0; border-radius: 0; min-height: 100vh; }
+
+  /* Project gallery */
+  .projects-gallery-view { padding: 56px 8px 16px; }
+  .projects-gallery-grid { grid-template-columns: 1fr; gap: 12px; }
+  .project-card { border-radius: var(--radius-md); }
+
+  /* Canvas placeholder */
+  .canvas-placeholder-inner { padding: 20px; }
+  .canvas-placeholder-inner h2 { font-size: 18px; }
+  .canvas-ph-icon { font-size: 48px; }
+  .canvas-placeholder-btn { padding: 12px 20px; font-size: 13px; }
+
+  /* Design workspace stacked */
+  .sheet-content { grid-template-columns: 1fr; }
+  .sheet-col-chat { max-height: 200px; overflow-y: auto; }
+  .sheet-col-score { max-height: 250px; overflow-y: auto; }
+
+  /* Avatar — compact on phone */
+  .ava-avatar-wrapper, .ava-portrait-img { width: 160px !important; height: 160px !important; }
+  .left-sidebar .sidebar-ava .ava-avatar-wrapper,
+  .left-sidebar .sidebar-ava .ava-portrait-img { width: 160px !important; height: 160px !important; }
+
+  /* Canvas HUD — bottom left on phone */
+  .canvas-hud { top: 8px; right: 8px; gap: 4px; }
+  .hud-btn { padding: 6px 10px; font-size: 10px; }
+
+  /* Draw toolbar */
+  .draw-toolbar { width: 52px; left: 4px; bottom: 80px; }
+
+  /* Seasonal grid */
+  .seasonal-grid { grid-template-columns: 1fr !important; }
+
+  /* Toast — full width on phone */
+  .toast-container { right: 8px; left: 8px; top: 56px; }
+  .toast { width: 100%; }
+
+  /* Settings modal — full screen */
+  .settings-modal .modal-card { border-radius: 0; }
+
+  /* View toggle — compact */
+  .view-toggle { left: 4px; }
+  .view-tab { padding: 6px 10px; font-size: 11px; }
+}
+
+/* ── Small phone (≤375px — iPhone SE) ── */
+@media (max-width: 375px) {
+  .top-bar { padding: 4px 6px 6px; height: 48px; }
+  .top-bar-brand-name { font-size: 16px; }
+  .top-bar .think-logo-img { height: 24px; }
+  .app-workspace { top: 52px; }
+  .top-btn { width: 28px; height: 28px; }
+  .top-btn .material-symbols-outlined { font-size: 16px; }
+  .ava-mobile-fab { width: 48px; height: 48px; bottom: 12px; right: 12px; }
+  .ava-mobile-chat { height: 85vh; }
+}
+
+/* ── Touch-friendly enhancements ── */
+@media (pointer: coarse) {
+  /* Larger tap targets for touch devices */
+  .top-btn { min-width: 40px; min-height: 40px; }
+  .hud-btn { min-height: 36px; padding: 8px 12px; }
+  .view-tab { min-height: 36px; }
+  .palette-chip { min-height: 32px; }
+
+  /* Disable hover effects that cause sticky states on touch */
+  .top-btn:hover { background: transparent; }
+  .hud-btn:hover { transform: none; }
+
+  /* Smooth scrolling */
+  .ava-map-messages, .sheet-col-chat, .sheet-col-score,
+  .palette-body, .mps-panel { -webkit-overflow-scrolling: touch; }
+}
+
+/* ── Landscape phone ── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .top-bar { height: 44px; padding: 4px 8px; }
+  .app-workspace { top: 48px; }
+  .ava-mobile-chat { height: 90vh; }
+  .ava-mobile-fab { bottom: 8px; right: 8px; width: 44px; height: 44px; }
+  .ava-avatar-wrapper, .ava-portrait-img { width: 100px !important; height: 100px !important; }
+}
+
+/* ── Safe area insets (iPhone notch / home indicator) ── */
+@supports (padding: max(0px)) {
+  .top-bar { padding-top: max(8px, env(safe-area-inset-top)); }
+  .ava-mobile-chat { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+  .ava-mobile-fab { bottom: max(20px, calc(env(safe-area-inset-bottom) + 8px)); }
+}
