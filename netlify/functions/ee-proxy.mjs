@@ -159,7 +159,7 @@ async function fetchBuildings(west, south, east, north) {
   // Filter by confidence >= 0.65
   const confName = g.constant('confidence');
   const confVal = g.constant(0.65);
-  const confFilter = g.call('Filter.greaterThanOrEquals', { name: confName, value: confVal });
+  const confFilter = g.call('Filter.greaterThanOrEquals', { leftField: confName, rightValue: confVal });
   const filtered2 = g.call('Collection.filter', { collection: filtered1, filter: confFilter });
   
   // Limit to 500 features
