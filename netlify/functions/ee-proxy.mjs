@@ -145,9 +145,11 @@ async function fetchBuildings(west, south, east, north) {
   const tableId = g.constant('GOOGLE/Research/open-buildings/v3/polygons');
   const fc = g.call('Collection.loadTable', { tableId });
   
-  // Create bounding box geometry
-  const coords = g.constant([west, south, east, north]);
-  const rect = g.call('Geometry.Rectangle', { coordinates: coords });
+  // Create bounding box as GeoJSON polygon (REST API uses GeoJSON, not Geometry.Rectangle)
+  const rect = g.constant({
+    type: 'Polygon',
+    coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]]
+  });
   
   // Filter by bounds — use Filter.intersects with .geo field
   const geoField = g.constant('.geo');
