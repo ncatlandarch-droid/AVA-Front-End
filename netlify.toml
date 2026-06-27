@@ -15,5 +15,8 @@
 [functions."gis-proxy"]
   timeout = 26
 
+[functions."ee-proxy"]
+  timeout = 26
+
 [functions."master-plan-render"]
   timeout = 26
