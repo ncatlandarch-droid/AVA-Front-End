@@ -145,21 +145,19 @@ async function fetchBuildings(west, south, east, north) {
   const tableId = g.constant('GOOGLE/Research/open-buildings/v3/polygons');
   const fc = g.call('Collection.loadTable', { tableId });
   
-  // Create bounding box as GeoJSON polygon (REST API uses GeoJSON, not Geometry.Rectangle)
+  // Create bounding box as GeoJSON polygon
   const rect = g.constant({
     type: 'Polygon',
     coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]]
   });
   
-  // Filter by bounds — use Filter.intersects with .geo field
-  const geoField = g.constant('.geo');
-  const boundsFilter = g.call('Filter.intersects', { leftField: geoField, rightValue: rect });
-  const filtered1 = g.call('Collection.filter', { collection: fc, filter: boundsFilter });
+  // Filter by bounds using Collection.filterBounds
+  const filtered1 = g.call('Collection.filterBounds', { collection: fc, geometry: rect });
   
   // Filter by confidence >= 0.65
-  const confName = g.constant('confidence');
+  const confField = g.constant('confidence');
   const confVal = g.constant(0.65);
-  const confFilter = g.call('Filter.greaterThanOrEquals', { leftField: confName, rightValue: confVal });
+  const confFilter = g.call('Filter.greaterThanOrEquals', { leftField: confField, rightValue: confVal });
   const filtered2 = g.call('Collection.filter', { collection: filtered1, filter: confFilter });
   
   // Limit to 500 features
