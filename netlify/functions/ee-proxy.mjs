@@ -1,6 +1,6 @@
 // Netlify Function: Earth Engine data proxy — building footprints, DEM tiles, aspect, slope
 // Authenticates with a GEE service account and returns GeoJSON or tile URLs
-// Requires env vars: GEE_PROJECT_ID, GEE_SERVICE_ACCOUNT_KEY (base64-encoded JSON key)
+// Requires env vars: GEE_PROJECT_ID, GEE_SERVICE_ACCOUNT_KEY (JSON key)
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +25,6 @@ async function getAccessToken() {
 
   let key;
   try {
-    // Env var may be base64 or raw JSON
     const decoded = keyJson.startsWith('{') ? keyJson : atob(keyJson);
     key = JSON.parse(decoded);
   } catch (e) {
@@ -33,8 +32,8 @@ async function getAccessToken() {
   }
 
   // Build JWT
-  const header = { alg: 'RS256', typ: 'JWT' };
   const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
   const claim = {
     iss: key.client_email,
     scope: 'https://www.googleapis.com/auth/earthengine.readonly',
@@ -43,13 +42,9 @@ async function getAccessToken() {
     exp: now + 3600
   };
 
-  const segments = [
-    base64url(JSON.stringify(header)),
-    base64url(JSON.stringify(claim))
-  ];
+  const segments = [b64url(JSON.stringify(header)), b64url(JSON.stringify(claim))];
   const sigInput = segments.join('.');
 
-  // Import the RSA private key and sign
   const pemBody = key.private_key.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
   const binaryKey = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
   const cryptoKey = await crypto.subtle.importKey(
@@ -58,9 +53,8 @@ async function getAccessToken() {
     false, ['sign']
   );
   const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, new TextEncoder().encode(sigInput));
-  const jwt = sigInput + '.' + base64url(sig);
+  const jwt = sigInput + '.' + b64url(sig);
 
-  // Exchange JWT for access token
   const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -68,7 +62,7 @@ async function getAccessToken() {
   });
   if (!tokenResp.ok) {
     const errText = await tokenResp.text();
-    throw new Error(`OAuth token error: ${tokenResp.status} — ${errText.substring(0, 200)}`);
+    throw new Error(`OAuth error: ${tokenResp.status} — ${errText.substring(0, 200)}`);
   }
   const tokenData = await tokenResp.json();
   _cachedToken = tokenData.access_token;
@@ -76,12 +70,10 @@ async function getAccessToken() {
   return _cachedToken;
 }
 
-function base64url(input) {
+function b64url(input) {
   let str;
-  if (typeof input === 'string') {
-    str = btoa(input);
-  } else {
-    // ArrayBuffer
+  if (typeof input === 'string') str = btoa(input);
+  else {
     const bytes = new Uint8Array(input);
     let binary = '';
     bytes.forEach(b => binary += String.fromCharCode(b));
@@ -91,130 +83,96 @@ function base64url(input) {
 }
 
 // ---------------------------------------------------------------------------
-// Earth Engine REST API helpers
+// Earth Engine REST API — correct expression graph format
 // ---------------------------------------------------------------------------
 const EE_API = 'https://earthengine.googleapis.com/v1';
 
-async function eeRequest(path, body) {
+async function eePost(path, body) {
   const projectId = process.env.GEE_PROJECT_ID;
   if (!projectId) throw new Error('GEE_PROJECT_ID not configured');
   const token = await getAccessToken();
-  const url = `${EE_API}/projects/${projectId}/${path}`;
-  const resp = await fetch(url, {
+  const resp = await fetch(`${EE_API}/projects/${projectId}/${path}`, {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(25000)
   });
   if (!resp.ok) {
     const errText = await resp.text();
-    throw new Error(`EE API ${resp.status}: ${errText.substring(0, 300)}`);
+    throw new Error(`EE API ${resp.status}: ${errText.substring(0, 400)}`);
   }
   return resp.json();
 }
 
+// Helper: Build EE expression graph nodes
+function eeVal(val) { return { constantValue: val }; }
+function eeCall(fn, args) {
+  const a = {};
+  for (const [k, v] of Object.entries(args)) a[k] = v;
+  return { functionInvocationValue: { functionName: fn, arguments: a } };
+}
+function eeRef(ref) { return { valueReference: ref }; }
+
 // ---------------------------------------------------------------------------
-// Layer: Building Footprints (Google Open Buildings V3)
-// Returns GeoJSON polygon features with area + confidence
+// Layer: Building Footprints — Google Open Buildings V3
+// Uses computeFeatures with correct expression graph
 // ---------------------------------------------------------------------------
 async function fetchBuildings(west, south, east, north) {
-  // Use Earth Engine computeFeatures to get building footprint polygons
-  const expression = {
-    functionInvocationValue: {
-      functionName: 'Collection.filter',
-      arguments: {
-        collection: {
-          functionInvocationValue: {
-            functionName: 'Collection.loadTable',
-            arguments: {
-              tableId: { constantValue: 'GOOGLE/Research/open-buildings/v3/polygons' }
-            }
-          }
-        },
-        filter: {
-          functionInvocationValue: {
-            functionName: 'Filter.and',
-            arguments: {
-              filters: {
-                arrayValue: {
-                  values: [
-                    {
-                      functionInvocationValue: {
-                        functionName: 'Filter.bounds',
-                        arguments: {
-                          geometry: {
-                            functionInvocationValue: {
-                              functionName: 'Geometry.Rectangle',
-                              arguments: {
-                                coordinates: { constantValue: [west, south, east, north] }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      functionInvocationValue: {
-                        functionName: 'Filter.greaterThanOrEquals',
-                        arguments: {
-                          name: { constantValue: 'confidence' },
-                          value: { constantValue: 0.65 }
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          }
+  // Build expression: ee.FeatureCollection('GOOGLE/Research/open-buildings/v3/polygons')
+  //   .filterBounds(ee.Geometry.Rectangle([w,s,e,n]))
+  //   .filter(ee.Filter.gte('confidence', 0.65))
+  const rect = eeCall('Geometry.Rectangle', {
+    coordinates: eeVal([west, south, east, north])
+  });
+  const fc = eeCall('Collection.loadTable', {
+    tableId: eeVal('GOOGLE/Research/open-buildings/v3/polygons')
+  });
+  const filtered = eeCall('Collection.filter', {
+    collection: fc,
+    filter: eeCall('Filter.and', {
+      filters: {
+        arrayValue: {
+          values: [
+            eeCall('Filter.bounds', { geometry: rect }),
+            eeCall('Filter.greaterThanOrEquals', {
+              name: eeVal('confidence'),
+              value: eeVal(0.65)
+            })
+          ]
         }
       }
-    }
-  };
-
-  const result = await eeRequest('table:computeFeatures', {
-    expression,
-    fileFormat: 'GEO_JSON'
+    })
   });
 
-  // result should be GeoJSON FeatureCollection
+  const result = await eePost('table:computeFeatures', {
+    expression: filtered
+  });
+
   return json(result, 200);
 }
 
 // ---------------------------------------------------------------------------
-// Layer: DEM Elevation Heatmap (USGS 3DEP 10m)
-// Returns a tile URL template for the styled raster
+// Layer: DEM Elevation Heatmap — USGS 3DEP 10m
+// Returns map tile URL
 // ---------------------------------------------------------------------------
 async function fetchDemTiles(west, south, east, north) {
-  const expression = {
-    functionInvocationValue: {
-      functionName: 'Image.visualize',
-      arguments: {
-        image: {
-          functionInvocationValue: {
-            functionName: 'Image.load',
-            arguments: {
-              id: { constantValue: 'USGS/3DEP/10m' }
-            }
-          }
-        },
-        bands: { constantValue: ['elevation'] },
-        min: { constantValue: 200 },
-        max: { constantValue: 350 },
-        palette: {
-          constantValue: ['#1a9850','#91cf60','#d9ef8b','#fee08b','#fc8d59','#d73027','#ffffff']
-        }
-      }
-    }
-  };
+  const dem = eeCall('Image.load', { id: eeVal('USGS/3DEP/10m') });
+  const vis = eeCall('Image.visualize', {
+    image: dem,
+    bands: eeVal(['elevation']),
+    min: eeVal(200),
+    max: eeVal(350),
+    palette: eeVal(['1a9850','91cf60','d9ef8b','fee08b','fc8d59','d73027','ffffff'])
+  });
 
-  const result = await eeRequest('maps:getMapId', { expression });
-  // result contains { name, mapId, tileUrl }  
-  return json({ 
-    tileUrl: result.tileUrl || `https://earthengine.googleapis.com/v1/${result.name}/tiles/{z}/{x}/{y}`,
+  const result = await eePost('maps', {
+    expression: vis,
+    fileFormat: 'AUTO_PNG_OR_JPG'
+  });
+
+  const name = result.name; // projects/{id}/maps/{mapId}
+  return json({
+    tileUrl: `/.netlify/functions/ee-proxy?layer=tile&map=${encodeURIComponent(name)}&z={z}&x={x}&y={y}`,
     type: 'tiles',
     legend: {
       title: 'Elevation (m)',
@@ -229,41 +187,26 @@ async function fetchDemTiles(west, south, east, north) {
 }
 
 // ---------------------------------------------------------------------------
-// Layer: Aspect / Sun Exposure (derived from 3DEP DEM)
+// Layer: Aspect / Sun Exposure — derived from 3DEP DEM
 // ---------------------------------------------------------------------------
 async function fetchAspectTiles(west, south, east, north) {
-  const expression = {
-    functionInvocationValue: {
-      functionName: 'Image.visualize',
-      arguments: {
-        image: {
-          functionInvocationValue: {
-            functionName: 'Terrain.aspect',
-            arguments: {
-              input: {
-                functionInvocationValue: {
-                  functionName: 'Image.load',
-                  arguments: {
-                    id: { constantValue: 'USGS/3DEP/10m' }
-                  }
-                }
-              }
-            }
-          }
-        },
-        min: { constantValue: 0 },
-        max: { constantValue: 360 },
-        palette: {
-          // N=blue, E=green, S=red/orange(most sun), W=yellow
-          constantValue: ['#2196F3','#4CAF50','#8BC34A','#FFC107','#FF9800','#F44336','#E91E63','#9C27B0','#2196F3']
-        }
-      }
-    }
-  };
+  const dem = eeCall('Image.load', { id: eeVal('USGS/3DEP/10m') });
+  const aspect = eeCall('Terrain.aspect', { input: dem });
+  const vis = eeCall('Image.visualize', {
+    image: aspect,
+    min: eeVal(0),
+    max: eeVal(360),
+    palette: eeVal(['2196F3','4CAF50','8BC34A','FFC107','FF9800','F44336','E91E63','9C27B0','2196F3'])
+  });
 
-  const result = await eeRequest('maps:getMapId', { expression });
+  const result = await eePost('maps', {
+    expression: vis,
+    fileFormat: 'AUTO_PNG_OR_JPG'
+  });
+
+  const name = result.name;
   return json({
-    tileUrl: result.tileUrl || `https://earthengine.googleapis.com/v1/${result.name}/tiles/{z}/{x}/{y}`,
+    tileUrl: `/.netlify/functions/ee-proxy?layer=tile&map=${encodeURIComponent(name)}&z={z}&x={x}&y={y}`,
     type: 'tiles',
     legend: {
       title: 'Sun Exposure (Aspect)',
@@ -278,41 +221,26 @@ async function fetchAspectTiles(west, south, east, north) {
 }
 
 // ---------------------------------------------------------------------------
-// Layer: Slope Analysis (derived from 3DEP DEM)
+// Layer: Slope Analysis — derived from 3DEP DEM
 // ---------------------------------------------------------------------------
 async function fetchSlopeTiles(west, south, east, north) {
-  const expression = {
-    functionInvocationValue: {
-      functionName: 'Image.visualize',
-      arguments: {
-        image: {
-          functionInvocationValue: {
-            functionName: 'Terrain.slope',
-            arguments: {
-              input: {
-                functionInvocationValue: {
-                  functionName: 'Image.load',
-                  arguments: {
-                    id: { constantValue: 'USGS/3DEP/10m' }
-                  }
-                }
-              }
-            }
-          }
-        },
-        min: { constantValue: 0 },
-        max: { constantValue: 30 },
-        palette: {
-          // Flat=green, moderate=yellow, steep=red
-          constantValue: ['#1a9850','#66bd63','#a6d96a','#fee08b','#fdae61','#f46d43','#d73027']
-        }
-      }
-    }
-  };
+  const dem = eeCall('Image.load', { id: eeVal('USGS/3DEP/10m') });
+  const slope = eeCall('Terrain.slope', { input: dem });
+  const vis = eeCall('Image.visualize', {
+    image: slope,
+    min: eeVal(0),
+    max: eeVal(30),
+    palette: eeVal(['1a9850','66bd63','a6d96a','fee08b','fdae61','f46d43','d73027'])
+  });
 
-  const result = await eeRequest('maps:getMapId', { expression });
+  const result = await eePost('maps', {
+    expression: vis,
+    fileFormat: 'AUTO_PNG_OR_JPG'
+  });
+
+  const name = result.name;
   return json({
-    tileUrl: result.tileUrl || `https://earthengine.googleapis.com/v1/${result.name}/tiles/{z}/{x}/{y}`,
+    tileUrl: `/.netlify/functions/ee-proxy?layer=tile&map=${encodeURIComponent(name)}&z={z}&x={x}&y={y}`,
     type: 'tiles',
     legend: {
       title: 'Slope (%)',
@@ -327,31 +255,66 @@ async function fetchSlopeTiles(west, south, east, north) {
 }
 
 // ---------------------------------------------------------------------------
+// Tile Proxy — serves EE map tiles through our function with auth
+// ---------------------------------------------------------------------------
+async function proxyTile(mapName, z, x, y) {
+  const token = await getAccessToken();
+  const tileUrl = `${EE_API}/${mapName}/tiles/${z}/${x}/${y}`;
+  const resp = await fetch(tileUrl, {
+    headers: { 'Authorization': `Bearer ${token}` },
+    signal: AbortSignal.timeout(15000)
+  });
+  if (!resp.ok) {
+    return new Response(`Tile error: ${resp.status}`, { status: resp.status, headers: CORS });
+  }
+  const body = await resp.arrayBuffer();
+  return new Response(body, {
+    status: 200,
+    headers: {
+      ...CORS,
+      'Content-Type': resp.headers.get('Content-Type') || 'image/png',
+      'Cache-Control': 'public, max-age=86400'
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 export default async (request) => {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: CORS });
   }
-  if (request.method !== 'GET') {
-    return json({ error: 'Method not allowed' }, 405);
-  }
+  if (request.method !== 'GET') return json({ error: 'Method not allowed' }, 405);
 
   const url = new URL(request.url);
   const layer = url.searchParams.get('layer');
-  const bbox = url.searchParams.get('bbox');
 
-  if (!layer) return json({ error: 'Missing layer parameter' }, 400);
-
-  // Check if EE is configured
   if (!process.env.GEE_PROJECT_ID || !process.env.GEE_SERVICE_ACCOUNT_KEY) {
-    return json({ 
-      error: 'Earth Engine not configured', 
+    return json({
+      error: 'Earth Engine not configured',
       message: 'Set GEE_PROJECT_ID and GEE_SERVICE_ACCOUNT_KEY in Netlify env vars',
       setup_url: 'https://code.earthengine.google.com/register'
     }, 503);
   }
 
+  // Tile proxy route: ?layer=tile&map=projects/.../maps/...&z=14&x=1234&y=5678
+  if (layer === 'tile') {
+    const mapName = url.searchParams.get('map');
+    const z = url.searchParams.get('z');
+    const x = url.searchParams.get('x');
+    const y = url.searchParams.get('y');
+    if (!mapName || !z || !x || !y) return json({ error: 'Missing tile params' }, 400);
+    try {
+      return await proxyTile(mapName, z, x, y);
+    } catch (err) {
+      console.error('[ee-proxy] tile error', err.message);
+      return new Response('Tile error', { status: 502, headers: CORS });
+    }
+  }
+
+  const bbox = url.searchParams.get('bbox');
+  if (!layer) return json({ error: 'Missing layer parameter' }, 400);
   if (!bbox) return json({ error: 'Missing bbox parameter' }, 400);
   const parts = bbox.split(',').map(Number);
   if (parts.length !== 4 || parts.some(isNaN)) return json({ error: 'Invalid bbox' }, 400);
@@ -381,3 +344,4 @@ function json(data, status = 200) {
     headers: { ...CORS, 'Content-Type': 'application/json' }
   });
 }
+
