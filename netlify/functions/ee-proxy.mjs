@@ -149,8 +149,9 @@ async function fetchBuildings(west, south, east, north) {
   const coords = g.constant([west, south, east, north]);
   const rect = g.call('Geometry.Rectangle', { coordinates: coords });
   
-  // Filter by bounds
-  const boundsFilter = g.call('Filter.bounds', { geometry: rect });
+  // Filter by bounds — use Filter.intersects with .geo field
+  const geoField = g.constant('.geo');
+  const boundsFilter = g.call('Filter.intersects', { leftField: geoField, rightValue: rect });
   const filtered1 = g.call('Collection.filter', { collection: fc, filter: boundsFilter });
   
   // Filter by confidence >= 0.65
@@ -188,7 +189,7 @@ async function fetchDemTiles() {
 
   const result = await eePost('maps', {
     expression: g.build(vis),
-    fileFormat: 'AUTO_PNG_OR_JPG'
+    fileFormat: 'AUTO_JPEG_PNG'
   });
 
   const name = result.name;
@@ -221,7 +222,7 @@ async function fetchAspectTiles() {
 
   const result = await eePost('maps', {
     expression: g.build(vis),
-    fileFormat: 'AUTO_PNG_OR_JPG'
+    fileFormat: 'AUTO_JPEG_PNG'
   });
 
   const name = result.name;
@@ -254,7 +255,7 @@ async function fetchSlopeTiles() {
 
   const result = await eePost('maps', {
     expression: g.build(vis),
-    fileFormat: 'AUTO_PNG_OR_JPG'
+    fileFormat: 'AUTO_JPEG_PNG'
   });
 
   const name = result.name;
