@@ -430,7 +430,7 @@ async function fetchHydrology(w, s, e, n) {
     geometryType: 'esriGeometryEnvelope',
     inSR: '4326',
     spatialRel: 'esriSpatialRelIntersects',
-    outFields: 'GNIS_NAME,FTYPE,FCODE,PERMANENT_IDENTIFIER',
+    outFields: '*',
     outSR: '4326',
     f: 'geojson',
     resultRecordCount: 1000,
@@ -504,11 +504,12 @@ async function fetchFloodplain(w, s, e, n) {
 // ---------------------------------------------------------------------------
 async function fetchWetlands(w, s, e, n) {
   const params = new URLSearchParams({
+    where: '1=1',
     geometry: `${w},${s},${e},${n}`,
     geometryType: 'esriGeometryEnvelope',
     inSR: '4326',
     spatialRel: 'esriSpatialRelIntersects',
-    outFields: 'WETLAND_TYPE,ATTRIBUTE,ACRES,SYSTEM_NAME,CLASS_NAME',
+    outFields: '*',
     outSR: '4326',
     f: 'geojson',
     resultRecordCount: '500',
