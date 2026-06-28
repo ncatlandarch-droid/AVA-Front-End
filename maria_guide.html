@@ -137,19 +137,34 @@
 <div class="step-card">
   <div class="step-header">
     <div class="step-number">2</div>
-    <div><div class="step-title">Install Software 💻</div><div class="step-time">~20 minutes</div></div>
+    <div><div class="step-title">Process Photos → Camera Poses 🔧</div><div class="step-time">~45 minutes (mostly waiting)</div></div>
   </div>
   <div class="step-body">
-    <table>
-      <tr><th>Software</th><th>What It Does</th><th>Get It</th></tr>
-      <tr><td><strong>COLMAP</strong></td><td>Figures out camera positions (has a GUI!)</td><td>colmap.github.io</td></tr>
-      <tr><td><strong>Python 3.10+</strong></td><td>Runs the training code</td><td>python.org</td></tr>
-      <tr><td><strong>Nerfstudio</strong></td><td>Trains the Gaussian Splat</td><td><code>pip install nerfstudio</code></td></tr>
-    </table>
-    <h4>GPU Check</h4>
-    <div class="code-block"><span class="code-comment"># Type this in Command Prompt:</span><br><span class="code-cmd">nvidia-smi</span></div>
-    <div class="warn-box"><span class="material-icons-round">warning</span><span><strong>No GPU or under 12GB?</strong> Tell Chris — he'll set up Google Colab (free cloud GPU).</span></div>
-    <div class="help-box"><strong>🆘 Stuck installing?</strong> Text or email Chris. He'll walk you through it.</div>
+    <p>We need to figure out <strong>where the camera was</strong> for each photo. Your existing software may already do this!</p>
+
+    <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:10px; padding:18px 20px; margin:14px 0;">
+      <h4 style="color:#16a34a; margin:0 0 10px; font-size:14px;">✅ TRY FIRST — Software You Already Have</h4>
+      <table>
+        <tr><th>Software</th><th>Can It Do This?</th><th>How</th></tr>
+        <tr><td><strong>Pix4D</strong></td><td>✅ Yes — does SfM <em>and</em> Gaussian Splatting!</td><td>Import photos → Process → Look for "3D Gaussian Splat" or "Point Cloud" export. <strong>If Pix4D generates a .ply splat, skip straight to Step 4!</strong></td></tr>
+        <tr><td><strong>Leica Cyclone</strong></td><td>✅ Partial — can extract BLK panoramic images</td><td>Check your Cyclone project for the embedded panoramic photos from the BLK scan. Export them as JPGs if available.</td></tr>
+        <tr><td><strong>Autodesk ReCap</strong></td><td>⚠️ Point cloud only</td><td>ReCap makes meshes but doesn't do Gaussian Splatting. Keep using it for the Revit pipeline.</td></tr>
+        <tr><td><strong>DJI Terra</strong></td><td>✅ Yes (v5.0+) — native GS support</td><td>If drone data came from a DJI drone, DJI Terra can generate a Gaussian Splat directly.</td></tr>
+      </table>
+    </div>
+
+    <div style="background:#fffbeb; border:2px solid #fde68a; border-radius:10px; padding:18px 20px; margin:14px 0;">
+      <h4 style="color:#d97706; margin:0 0 10px; font-size:14px;">🔄 FREE FALLBACK — If Your Software Can't Do It</h4>
+      <p style="margin-bottom:10px;">Install these free tools:</p>
+      <table>
+        <tr><th>Software</th><th>What It Does</th><th>Get It</th></tr>
+        <tr><td><strong>COLMAP</strong></td><td>Figures out camera positions (has a GUI!)</td><td>colmap.github.io</td></tr>
+        <tr><td><strong>Python 3.10+</strong></td><td>Runs the training code</td><td>python.org</td></tr>
+        <tr><td><strong>Nerfstudio</strong></td><td>Trains the Gaussian Splat</td><td><code>pip install nerfstudio</code></td></tr>
+      </table>
+    </div>
+
+    <div class="help-box"><strong>🆘 Not sure which path to take?</strong> Text Chris a list of the software you have installed and he'll tell you exactly which one to use.</div>
   </div>
 </div>
 
@@ -157,30 +172,33 @@
 <div class="step-card">
   <div class="step-header">
     <div class="step-number">3</div>
-    <div><div class="step-title">Run COLMAP (Camera Poses) 🔧</div><div class="step-time">~45 min (mostly waiting)</div></div>
+    <div><div class="step-title">Generate the Gaussian Splat 🧠</div><div class="step-time">~1 hour (computer does it)</div></div>
   </div>
   <div class="step-body">
-    <p>COLMAP has a <strong>graphical interface</strong> — no command line needed!</p>
-    <ol>
-      <li>Open COLMAP</li>
-      <li><strong>File → New Project</strong> → point to your <code>courtyard_photos</code> folder</li>
-      <li><strong>Processing → Feature Extraction</strong> → click Extract → ☕ wait ~10 min</li>
-      <li><strong>Processing → Feature Matching</strong> → Exhaustive → ☕ wait ~15 min</li>
-      <li><strong>Processing → Start Reconstruction</strong> → ☕ wait ~15 min</li>
-      <li><strong>File → Export Model</strong> → save to <code>courtyard_sparse</code></li>
-    </ol>
-    <p>✅ You should see a point cloud that looks like the courtyard<br>✅ Status bar shows most photos registered (e.g., "190/200")</p>
-    <div class="help-box"><strong>🆘 Stuck?</strong> Send Chris a screenshot. Common fixes are easy.</div>
-  </div>
-</div>
+    <p>Follow <strong>whichever path</strong> matches what worked in Step 2:</p>
 
-<!-- STEP 4 -->
-<div class="step-card">
-  <div class="step-header">
-    <div class="step-number">4</div>
-    <div><div class="step-title">Train the Gaussian Splat 🧠</div><div class="step-time">~1 hour (computer does it)</div></div>
-  </div>
-  <div class="step-body">
+    <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:10px; padding:18px 20px; margin:14px 0;">
+      <h4 style="color:#16a34a; margin:0 0 10px; font-size:14px;">✅ PATH A — Pix4D / DJI Terra Did Everything</h4>
+      <p>If Pix4D or DJI Terra already generated a <strong>.ply Gaussian Splat file</strong> → you're done with this step! Skip to Step 4 (cleanup).</p>
+    </div>
+
+    <div style="background:#fffbeb; border:2px solid #fde68a; border-radius:10px; padding:18px 20px; margin:14px 0;">
+      <h4 style="color:#d97706; margin:0 0 10px; font-size:14px;">🔄 PATH B — Using COLMAP + Nerfstudio</h4>
+
+      <p style="margin:8px 0;"><strong>First, run COLMAP</strong> (has a graphical interface — no command line!):</p>
+      <ol style="margin-bottom:12px;">
+        <li>Open COLMAP</li>
+        <li><strong>File → New Project</strong> → point to your <code>courtyard_photos</code> folder</li>
+        <li><strong>Processing → Feature Extraction</strong> → click Extract → ☕ wait ~10 min</li>
+        <li><strong>Processing → Feature Matching</strong> → Exhaustive → ☕ wait ~15 min</li>
+        <li><strong>Processing → Start Reconstruction</strong> → ☕ wait ~15 min</li>
+        <li><strong>File → Export Model</strong> → save to <code>courtyard_sparse</code></li>
+      </ol>
+      <p>✅ You should see a point cloud that looks like the courtyard<br>✅ Status bar shows most photos registered (e.g., "190/200")</p>
+
+      <p style="margin:12px 0 8px;"><strong>Then, train the Gaussian Splat:</strong></p>
+    </div>
+
     <div class="code-block"><span class="code-comment"># Prepare the data</span><br><span class="code-cmd">ns-process-data images --data ./courtyard_photos --output-dir ./courtyard_processed</span><br><br><span class="code-comment"># Train! (the magic step)</span><br><span class="code-cmd">ns-train splatfacto --data ./courtyard_processed</span></div>
     <ul>
       <li>A viewer opens in your browser at <strong>localhost:7007</strong></li>
@@ -188,14 +206,19 @@
       <li>Takes 30–60 min · <strong>Don't close the terminal!</strong></li>
       <li>When done: check <code>outputs</code> folder for the <strong>.ply file</strong></li>
     </ul>
-    <div class="help-box"><strong>🆘 Stuck?</strong> Screenshot any error and send to Chris.</div>
+
+    <h4>GPU Check (for Path B only)</h4>
+    <div class="code-block"><span class="code-comment"># Type this in Command Prompt:</span><br><span class="code-cmd">nvidia-smi</span></div>
+    <div class="warn-box"><span class="material-icons-round">warning</span><span><strong>No GPU or under 12GB?</strong> Tell Chris — he'll set up Google Colab (free cloud GPU).</span></div>
+
+    <div class="help-box"><strong>🆘 Stuck?</strong> Screenshot any error and send to Chris. Common fixes are easy.</div>
   </div>
 </div>
 
 <!-- STEP 5 -->
 <div class="step-card">
   <div class="step-header">
-    <div class="step-number">5</div>
+    <div class="step-number">4</div>
     <div><div class="step-title">Clean Up in SuperSplat ✨</div><div class="step-time">~15 min — in your browser!</div></div>
   </div>
   <div class="step-body">
@@ -211,7 +234,7 @@
 <!-- STEP 6 -->
 <div class="step-card">
   <div class="step-header">
-    <div class="step-number">6</div>
+    <div class="step-number">5</div>
     <div><div class="step-title">Hand It Off to Chris 🤝</div><div class="step-time">~2 minutes</div></div>
   </div>
   <div class="step-body">
@@ -225,9 +248,9 @@
 <div class="checklist">
   <h3><span class="material-icons-round">checklist</span> <span>Summary Checklist</span></h3>
   <div class="check-item"><div class="checkbox"></div> Take 150–200 phone photos of the courtyard (30 min)</div>
-  <div class="check-item"><div class="checkbox"></div> Install COLMAP + Python + Nerfstudio (ask Chris if stuck)</div>
-  <div class="check-item"><div class="checkbox"></div> Run COLMAP → get camera poses (45 min)</div>
-  <div class="check-item"><div class="checkbox"></div> Train the Gaussian Splat → get .ply file (1 hour)</div>
+  <div class="check-item"><div class="checkbox"></div> Try Pix4D or DJI Terra first — can it generate a .ply splat?</div>
+  <div class="check-item"><div class="checkbox"></div> If not → install COLMAP + Nerfstudio (ask Chris)</div>
+  <div class="check-item"><div class="checkbox"></div> Generate the Gaussian Splat → get .ply file</div>
   <div class="check-item"><div class="checkbox"></div> Clean in SuperSplat → export cleaned .ply (15 min)</div>
   <div class="check-item"><div class="checkbox"></div> Upload to Basecamp/OneDrive → tell Chris</div>
   <div class="check-item"><div class="checkbox"></div> Chris puts it live → QR code for community! 🎉</div>
