@@ -136,39 +136,48 @@ async function eePost(path, body) {
 }
 
 // ---------------------------------------------------------------------------
-// Layer: Building Footprints — Google Open Buildings V3
+// Layer: Building Footprints — OpenStreetMap via Overpass API
+// Free, fast, no auth needed. Great coverage for US university campuses.
 // ---------------------------------------------------------------------------
 async function fetchBuildings(west, south, east, north) {
-  const g = new ExprGraph();
+  const query = `[out:json][timeout:20];
+    way["building"](${south},${west},${north},${east});
+    out body geom;`;
   
-  // Load the FeatureCollection
-  const tableId = g.constant('GOOGLE/Research/open-buildings/v3/polygons');
-  const fc = g.call('Collection.loadTable', { tableId });
-  
-  // Create bounding box as GeoJSON polygon
-  const rect = g.constant({
-    type: 'Polygon',
-    coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]]
+  const resp = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `data=${encodeURIComponent(query)}`,
+    signal: AbortSignal.timeout(22000)
   });
   
-  // Filter by bounds using Collection.filterBounds
-  const filtered1 = g.call('Collection.filterBounds', { collection: fc, geometry: rect });
+  if (!resp.ok) throw new Error(`Overpass API ${resp.status}`);
+  const data = await resp.json();
   
-  // Filter by confidence >= 0.65
-  const confField = g.constant('confidence');
-  const confVal = g.constant(0.65);
-  const confFilter = g.call('Filter.greaterThanOrEquals', { leftField: confField, rightValue: confVal });
-  const filtered2 = g.call('Collection.filter', { collection: filtered1, filter: confFilter });
-  
-  // Limit to 500 features
-  const limitVal = g.constant(500);
-  const limited = g.call('Collection.limit', { collection: filtered2, limit: limitVal });
-  
-  const result = await eePost('table:computeFeatures', {
-    expression: g.build(limited)
-  });
+  // Convert Overpass elements to GeoJSON FeatureCollection
+  const features = data.elements
+    .filter(el => el.geometry && el.geometry.length >= 4)
+    .slice(0, 500)
+    .map(el => {
+      const coords = el.geometry.map(p => [p.lon, p.lat]);
+      // Close the ring if not already closed
+      if (coords.length > 0) {
+        const first = coords[0], last = coords[coords.length - 1];
+        if (first[0] !== last[0] || first[1] !== last[1]) coords.push([...first]);
+      }
+      return {
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [coords] },
+        properties: {
+          name: el.tags?.name || null,
+          building: el.tags?.building || 'yes',
+          levels: el.tags?.['building:levels'] || null,
+          osm_id: el.id
+        }
+      };
+    });
 
-  return json(result, 200);
+  return json({ type: 'FeatureCollection', features }, 200);
 }
 
 // ---------------------------------------------------------------------------
