@@ -140,14 +140,13 @@ async function eePost(path, body) {
 // Free, fast, no auth needed. Great coverage for US university campuses.
 // ---------------------------------------------------------------------------
 async function fetchBuildings(west, south, east, north) {
-  const query = `[out:json][timeout:20];
-    way["building"](${south},${west},${north},${east});
-    out body geom;`;
+  const query = `[out:json][timeout:20];way["building"](${south},${west},${north},${east});out body geom;`;
   
-  const resp = await fetch('https://overpass-api.de/api/interpreter', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `data=${encodeURIComponent(query)}`,
+  // Use GET with query parameter — POST returns 406 from serverless
+  const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+  const resp = await fetch(url, {
+    method: 'GET',
+    headers: { 'User-Agent': 'AVA-GIS/1.0 (thinkava.app)' },
     signal: AbortSignal.timeout(22000)
   });
   
