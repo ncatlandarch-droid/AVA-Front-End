@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maria's Gaussian Splatting Guide — Inspiration Courtyard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+  :root {
+    --blue: #003057;
+    --gold: #FDB927;
+    --dark: #0a1628;
+    --surface: #f4f6f9;
+    --card: #ffffff;
+    --text: #1a2332;
+    --text-light: #5a6a7e;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--surface); color: var(--text); line-height: 1.6; font-size: 14px; }
+  .header { background: linear-gradient(135deg, var(--blue) 0%, #001a33 100%); color: white; padding: 40px 48px; position: relative; overflow: hidden; }
+  .header::after { content: ''; position: absolute; top: -50%; right: -10%; width: 400px; height: 400px; background: radial-gradient(circle, rgba(253,185,39,0.15) 0%, transparent 70%); border-radius: 50%; }
+  .header-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+  .header h1 { font-size: 28px; font-weight: 800; margin-bottom: 4px; position: relative; }
+  .header h1 span { color: var(--gold); }
+  .header-sub { font-size: 15px; font-weight: 300; opacity: 0.85; margin-bottom: 16px; }
+  .header-meta { font-size: 12px; opacity: 0.6; }
+  .content { max-width: 800px; margin: 0 auto; padding: 32px 24px 64px; }
+  .intro-card { background: var(--card); border-radius: 12px; padding: 24px 28px; margin-bottom: 28px; border-left: 4px solid var(--gold); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .intro-card h2 { font-size: 16px; font-weight: 700; color: var(--blue); margin-bottom: 8px; }
+  .intro-card p { color: var(--text-light); font-size: 13.5px; margin-bottom: 6px; }
+  .done-section { background: var(--green-bg); border-radius: 12px; padding: 24px 28px; margin-bottom: 28px; border: 1px solid #bbf7d0; }
+  .done-section h3 { font-size: 15px; font-weight: 700; color: var(--green); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .done-item { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; font-size: 13.5px; color: #166534; }
+  .done-item .material-icons-round { font-size: 18px; color: var(--green); margin-top: 1px; }
+  .step-card { background: var(--card); border-radius: 12px; padding: 28px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border: 1px solid #e8ecf0; page-break-inside: avoid; }
+  .step-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .step-number { width: 40px; height: 40px; background: linear-gradient(135deg, var(--blue), #004a8f); color: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; flex-shrink: 0; }
+  .step-title { font-size: 17px; font-weight: 700; color: var(--blue); }
+  .step-time { font-size: 12px; color: var(--text-light); font-weight: 500; }
+  .step-body p, .step-body li { font-size: 13.5px; margin-bottom: 8px; }
+  .step-body ul, .step-body ol { padding-left: 20px; margin-bottom: 12px; }
+  .step-body li { margin-bottom: 5px; }
+  .step-body h4 { font-size: 13px; font-weight: 700; color: var(--blue); margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .code-block { background: var(--dark); color: #e2e8f0; border-radius: 8px; padding: 16px 20px; font-family: 'Consolas', monospace; font-size: 12.5px; line-height: 1.7; margin: 12px 0; overflow-x: auto; }
+  .code-comment { color: #64748b; }
+  .code-cmd { color: #7dd3fc; }
+  .tip-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 18px; margin: 14px 0; font-size: 13px; color: #1e40af; display: flex; gap: 10px; align-items: flex-start; }
+  .tip-box .material-icons-round { font-size: 18px; margin-top: 1px; color: #3b82f6; }
+  .warn-box { background: var(--amber-bg); border: 1px solid #fde68a; border-radius: 8px; padding: 14px 18px; margin: 14px 0; font-size: 13px; color: #92400e; display: flex; gap: 10px; align-items: flex-start; }
+  .warn-box .material-icons-round { font-size: 18px; margin-top: 1px; color: var(--amber); }
+  .help-box { background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 14px 18px; margin: 14px 0; font-size: 13px; color: #6b21a8; }
+  .help-box strong { color: #7c3aed; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: var(--blue); color: white; font-weight: 600; text-align: left; padding: 10px 14px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  th:first-child { border-radius: 6px 0 0 0; }
+  th:last-child { border-radius: 0 6px 0 0; }
+  td { padding: 10px 14px; border-bottom: 1px solid #e8ecf0; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .checklist { background: linear-gradient(135deg, var(--blue) 0%, #001a33 100%); color: white; border-radius: 12px; padding: 28px; margin: 28px 0; }
+  .checklist h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .checklist h3 span { color: var(--gold); }
+  .check-item { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; font-size: 13.5px; }
+  .checkbox { width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.4); border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+  .lifeline { background: var(--card); border: 2px solid var(--gold); border-radius: 12px; padding: 24px 28px; margin: 28px 0; }
+  .lifeline h3 { font-size: 15px; font-weight: 700; color: var(--blue); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .lifeline-item { display: flex; gap: 12px; padding: 8px 0; font-size: 13.5px; border-bottom: 1px solid #f0f2f5; }
+  .lifeline-item:last-child { border-bottom: none; }
+  .footer { text-align: center; padding: 32px; color: var(--text-light); font-size: 12px; border-top: 1px solid #e8ecf0; margin-top: 24px; }
+  .footer strong { color: var(--blue); }
+  @media print {
+    body { background: white; font-size: 12px; }
+    .header { padding: 24px 32px; }
+    .content { padding: 16px; }
+    .step-card { box-shadow: none; border: 1px solid #ddd; }
+    .checklist, .header, .done-section, .tip-box, .warn-box, .help-box, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-eyebrow">NC A&T · Inspiration Courtyard Project</div>
+  <h1>Gaussian Splatting Guide <span>for Maria</span></h1>
+  <div class="header-sub">Photorealistic Digital Twin — Step-by-Step Playbook</div>
+  <div class="header-meta">Prepared by W. Chris Harrison · June 28, 2026</div>
+</div>
+
+<div class="content">
+
+<div class="intro-card">
+  <h2>What Is This?</h2>
+  <p>We're turning your LiDAR scan into a <strong>photorealistic 3D walkthrough</strong> that anyone can view in their browser. Gaussian Splatting takes your existing point cloud + new photos and creates a scene that looks like a real photograph from every angle.</p>
+  <p><strong>End result:</strong> A QR code anyone can scan to walk through the courtyard in 3D on their phone.</p>
+  <p><strong>This doesn't replace your Revit/Rhino segmentation work</strong> — it's the visualization layer alongside the engineering model. Two parallel tracks.</p>
+</div>
+
+<div class="done-section">
+  <h3><span class="material-icons-round">check_circle</span> What You've Already Completed</h3>
+  <div class="done-item"><span class="material-icons-round">check_circle</span> LiDAR scan with Leica BLK (~760 million points)</div>
+  <div class="done-item"><span class="material-icons-round">check_circle</span> Ground control points (RTK + NGS benchmarks)</div>
+  <div class="done-item"><span class="material-icons-round">check_circle</span> Cleaned in Cyclone REGISTER 360 PLUS</div>
+  <div class="done-item"><span class="material-icons-round">check_circle</span> Exported to E57/RCS → ReCap → Revit</div>
+  <div style="margin-top:12px; font-weight:600; color:#166534;">You're already 60% done. Here are the remaining steps:</div>
+</div>
+
+<!-- STEP 1 -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-number">1</div>
+    <div><div class="step-title">Take Photos of the Courtyard 📱</div><div class="step-time">~30 minutes of fieldwork</div></div>
+  </div>
+  <div class="step-body">
+    <p>Go to the Inspiration Courtyard with your phone and take <strong>150–200 photos.</strong></p>
+    <h4>How to Walk It</h4>
+    <ul>
+      <li>Walk the <strong>full perimeter</strong> — photo every 3–4 steps</li>
+      <li>Walk through the <strong>interior</strong> in a grid/zigzag pattern</li>
+      <li>Get every wall, bench, planter, tree from <strong>2–3 angles</strong></li>
+      <li>Include shots looking up (canopy) and down (pavement)</li>
+    </ul>
+    <h4>Camera Tips</h4>
+    <ul>
+      <li>Hold phone steady — no motion blur</li>
+      <li>Each photo should share ~70% overlap with the previous one</li>
+      <li>Avoid direct sun glare · Overcast days work best</li>
+    </ul>
+    <div class="tip-box"><span class="material-icons-round">lightbulb</span><span>Save all photos in one folder: <code>courtyard_photos</code></span></div>
+  </div>
+</div>
+
+<!-- STEP 2 -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-number">2</div>
+    <div><div class="step-title">Install Software 💻</div><div class="step-time">~20 minutes</div></div>
+  </div>
+  <div class="step-body">
+    <table>
+      <tr><th>Software</th><th>What It Does</th><th>Get It</th></tr>
+      <tr><td><strong>COLMAP</strong></td><td>Figures out camera positions (has a GUI!)</td><td>colmap.github.io</td></tr>
+      <tr><td><strong>Python 3.10+</strong></td><td>Runs the training code</td><td>python.org</td></tr>
+      <tr><td><strong>Nerfstudio</strong></td><td>Trains the Gaussian Splat</td><td><code>pip install nerfstudio</code></td></tr>
+    </table>
+    <h4>GPU Check</h4>
+    <div class="code-block"><span class="code-comment"># Type this in Command Prompt:</span><br><span class="code-cmd">nvidia-smi</span></div>
+    <div class="warn-box"><span class="material-icons-round">warning</span><span><strong>No GPU or under 12GB?</strong> Tell Chris — he'll set up Google Colab (free cloud GPU).</span></div>
+    <div class="help-box"><strong>🆘 Stuck installing?</strong> Text or email Chris. He'll walk you through it.</div>
+  </div>
+</div>
+
+<!-- STEP 3 -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-number">3</div>
+    <div><div class="step-title">Run COLMAP (Camera Poses) 🔧</div><div class="step-time">~45 min (mostly waiting)</div></div>
+  </div>
+  <div class="step-body">
+    <p>COLMAP has a <strong>graphical interface</strong> — no command line needed!</p>
+    <ol>
+      <li>Open COLMAP</li>
+      <li><strong>File → New Project</strong> → point to your <code>courtyard_photos</code> folder</li>
+      <li><strong>Processing → Feature Extraction</strong> → click Extract → ☕ wait ~10 min</li>
+      <li><strong>Processing → Feature Matching</strong> → Exhaustive → ☕ wait ~15 min</li>
+      <li><strong>Processing → Start Reconstruction</strong> → ☕ wait ~15 min</li>
+      <li><strong>File → Export Model</strong> → save to <code>courtyard_sparse</code></li>
+    </ol>
+    <p>✅ You should see a point cloud that looks like the courtyard<br>✅ Status bar shows most photos registered (e.g., "190/200")</p>
+    <div class="help-box"><strong>🆘 Stuck?</strong> Send Chris a screenshot. Common fixes are easy.</div>
+  </div>
+</div>
+
+<!-- STEP 4 -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-number">4</div>
+    <div><div class="step-title">Train the Gaussian Splat 🧠</div><div class="step-time">~1 hour (computer does it)</div></div>
+  </div>
+  <div class="step-body">
+    <div class="code-block"><span class="code-comment"># Prepare the data</span><br><span class="code-cmd">ns-process-data images --data ./courtyard_photos --output-dir ./courtyard_processed</span><br><br><span class="code-comment"># Train! (the magic step)</span><br><span class="code-cmd">ns-train splatfacto --data ./courtyard_processed</span></div>
+    <ul>
+      <li>A viewer opens in your browser at <strong>localhost:7007</strong></li>
+      <li>Watch the courtyard form — blurry at first, then photorealistic</li>
+      <li>Takes 30–60 min · <strong>Don't close the terminal!</strong></li>
+      <li>When done: check <code>outputs</code> folder for the <strong>.ply file</strong></li>
+    </ul>
+    <div class="help-box"><strong>🆘 Stuck?</strong> Screenshot any error and send to Chris.</div>
+  </div>
+</div>
+
+<!-- STEP 5 -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-number">5</div>
+    <div><div class="step-title">Clean Up in SuperSplat ✨</div><div class="step-time">~15 min — in your browser!</div></div>
+  </div>
+  <div class="step-body">
+    <ol>
+      <li>Open <strong>https://superspl.at</strong> in Chrome (no install!)</li>
+      <li>Drag & drop your <code>.ply</code> file</li>
+      <li>Delete floating junk · Crop to courtyard area</li>
+      <li><strong>Export</strong> → save cleaned <code>.ply</code></li>
+    </ol>
+  </div>
+</div>
+
+<!-- STEP 6 -->
+<div class="step-card">
+  <div class="step-header">
+    <div class="step-number">6</div>
+    <div><div class="step-title">Hand It Off to Chris 🤝</div><div class="step-time">~2 minutes</div></div>
+  </div>
+  <div class="step-body">
+    <p>Upload the cleaned <code>.ply</code> to <strong>Basecamp or OneDrive</strong> and tell Chris it's ready.</p>
+    <p>Chris will upload to Cesium ion → add to AVA → generate QR code → <strong>it goes live!</strong></p>
+    <div class="tip-box"><span class="material-icons-round">celebration</span><span><strong>That's it — you're done!</strong> 🎉</span></div>
+  </div>
+</div>
+
+<!-- CHECKLIST -->
+<div class="checklist">
+  <h3><span class="material-icons-round">checklist</span> <span>Summary Checklist</span></h3>
+  <div class="check-item"><div class="checkbox"></div> Take 150–200 phone photos of the courtyard (30 min)</div>
+  <div class="check-item"><div class="checkbox"></div> Install COLMAP + Python + Nerfstudio (ask Chris if stuck)</div>
+  <div class="check-item"><div class="checkbox"></div> Run COLMAP → get camera poses (45 min)</div>
+  <div class="check-item"><div class="checkbox"></div> Train the Gaussian Splat → get .ply file (1 hour)</div>
+  <div class="check-item"><div class="checkbox"></div> Clean in SuperSplat → export cleaned .ply (15 min)</div>
+  <div class="check-item"><div class="checkbox"></div> Upload to Basecamp/OneDrive → tell Chris</div>
+  <div class="check-item"><div class="checkbox"></div> Chris puts it live → QR code for community! 🎉</div>
+  <div style="margin-top:16px; text-align:center; font-size:14px; font-weight:600;">
+    Total hands-on time: <span style="color:var(--gold);">~2 hours</span> · Calendar time: <span style="color:var(--gold);">1 day</span>
+  </div>
+</div>
+
+<!-- LIFELINE -->
+<div class="lifeline">
+  <h3><span class="material-icons-round">support_agent</span> Your Lifeline Card</h3>
+  <div class="lifeline-item"><span>💻</span> <span><strong>Software / code / GPU</strong> → Chris Harrison</span></div>
+  <div class="lifeline-item"><span>🗺️</span> <span><strong>Map / GIS / coordinates</strong> → Dr. Hashemi Beni</span></div>
+  <div class="lifeline-item"><span>📷</span> <span><strong>Need another drone scan</strong> → Dr. Chakraborty</span></div>
+  <div class="lifeline-item"><span>🥽</span> <span><strong>VR headset setup</strong> → Shuva Chowdhury</span></div>
+  <div class="lifeline-item"><span>💰</span> <span><strong>Budget / hardware</strong> → Charlie Hopper</span></div>
+  <div class="lifeline-item"><span>🤷</span> <span><strong>"I'm stuck and don't know who to ask"</strong> → Chris Harrison</span></div>
+</div>
+
+</div>
+
+<div class="footer">
+  <strong>North Carolina A&T State University</strong> · Inspiration Courtyard Digital Twin Project<br>
+  Prepared by Think! Design and Planning, LLC · June 2026<br><br>
+  <em>Questions anytime — just text or email Chris. You've got this! 💪</em>
+</div>
+
+</body>
+</html>
