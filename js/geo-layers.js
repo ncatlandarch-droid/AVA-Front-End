@@ -1334,11 +1334,14 @@ window.GEO_LAYERS = (() => {
             if (dl < spanLng * 0.25 && ds < spanLat * 0.25) return;
           }
           try {
-            const resp = await fetch(`${PROXY}?service=${layerId}&bbox=${bbox.west},${bbox.south},${bbox.east},${bbox.north}`);
+            const def = LAYER_DEFS.find(d => d.id === layerId);
+            const isEE = def?.proxy === 'ee';
+            const proxyUrl = isEE ? '/.netlify/functions/ee-proxy' : PROXY;
+            const paramKey = isEE ? 'layer' : 'service';
+            const resp = await fetch(`${proxyUrl}?${paramKey}=${layerId}&bbox=${bbox.west},${bbox.south},${bbox.east},${bbox.north}`);
             if (!resp.ok) return;
             const geojson = await resp.json();
             if (!geojson?.features?.length) return;
-            const def = LAYER_DEFS.find(d => d.id === layerId);
             const newLayer = _addGmLayer(layerId, geojson, def.style);
             if (_st[layerId].ref?.setMap) _st[layerId].ref.setMap(null);
             _st[layerId].ref = newLayer;
