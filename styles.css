@@ -2543,6 +2543,40 @@ body.workspace-active .projects-gallery-view { display: none !important; }
   /* View toggle — compact */
   .view-toggle { left: 4px; }
   .view-tab { padding: 6px 10px; font-size: 11px; }
+
+  /* ── Mobile overflow fixes ── */
+
+  /* Portrait avatar — prevent 320px overflow on 375px screens */
+  .ava-portrait-block img { width: 160px; height: 160px; }
+
+  /* Community grid — single column in modals */
+  .community-grid { grid-template-columns: 1fr !important; }
+
+  /* Parcel info card — full phone width instead of centered transform */
+  .ava-parcel-card {
+    min-width: auto; max-width: none;
+    left: 12px; right: 12px;
+    transform: none;
+  }
+
+  /* Tier medal — smaller on phones */
+  .tier-medal { width: 120px; height: 120px; }
+
+  /* Design canvas — prevent browser gestures during drawing */
+  .design-canvas-svg { touch-action: none; }
+
+  /* Draw toolbar — horizontal bottom bar on phones */
+  .draw-toolbar {
+    width: auto; height: 48px;
+    left: 56px; right: 56px; bottom: 72px;
+    top: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    border-radius: 12px;
+    padding: 4px;
+    gap: 2px;
+  }
+  .draw-toolbar button { min-width: 40px; flex-shrink: 0; }
 }
 
 /* ── Small phone (≤375px — iPhone SE) ── */

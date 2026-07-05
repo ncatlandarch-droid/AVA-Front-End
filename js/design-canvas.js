@@ -70,7 +70,16 @@ window.DESIGN_CANVAS = (() => {
   }
   function _getSVGPoint(evt) {
     const pt = _svg.createSVGPoint();
-    pt.x = evt.clientX; pt.y = evt.clientY;
+    // Support both mouse and touch events
+    if (evt.touches && evt.touches.length > 0) {
+      pt.x = evt.touches[0].clientX;
+      pt.y = evt.touches[0].clientY;
+    } else if (evt.changedTouches && evt.changedTouches.length > 0) {
+      pt.x = evt.changedTouches[0].clientX;
+      pt.y = evt.changedTouches[0].clientY;
+    } else {
+      pt.x = evt.clientX; pt.y = evt.clientY;
+    }
     return pt.matrixTransform(_svg.getScreenCTM().inverse());
   }
   function _defaultRadius(type) {
@@ -101,7 +110,7 @@ window.DESIGN_CANVAS = (() => {
 
   // ── SVG event handlers ───────────────────────────────────────────
   function _onSVGClick(evt) {
-    if (!_svg || evt.detail >= 2) return;
+    if (!_svg || (evt.detail && evt.detail >= 2)) return;
     const sp = _getSVGPoint(evt);
     const { lat, lng } = _fromXY(sp.x, sp.y);
 
@@ -267,6 +276,38 @@ window.DESIGN_CANVAS = (() => {
     _svg.addEventListener('click',     _onSVGClick);
     _svg.addEventListener('dblclick',  _onSVGDblClick);
     _svg.addEventListener('mousemove', _onSVGMouseMove);
+
+    // ── Touch support for mobile ──────────────────────────────────
+    let _lastTapTime = 0;
+    _svg.addEventListener('touchstart', evt => {
+      if (!_svg) return;
+      // Prevent browser scroll/zoom while drawing
+      if (_drawMode !== 'select' || _drawMode === 'select') {
+        evt.preventDefault();
+      }
+    }, { passive: false });
+
+    _svg.addEventListener('touchend', evt => {
+      if (!_svg) return;
+      evt.preventDefault();
+      const now = Date.now();
+      // Double-tap detection (< 350ms between taps)
+      if (now - _lastTapTime < 350) {
+        _onSVGDblClick(evt);
+        _lastTapTime = 0;
+        return;
+      }
+      _lastTapTime = now;
+      // Single tap → treat as click
+      _onSVGClick(evt);
+    }, { passive: false });
+
+    _svg.addEventListener('touchmove', evt => {
+      if (!_inProgress?.points?.length || !_svg) return;
+      evt.preventDefault();
+      _refreshGhost(_getSVGPoint(evt));
+    }, { passive: false });
+    _svg.style.touchAction = 'none';
     document.addEventListener('keydown', evt => {
       if (!_svg?.isConnected) return;
       if (evt.key === 'Escape') cancelDraw();
