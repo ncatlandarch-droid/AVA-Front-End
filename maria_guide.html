@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Maria's Gaussian Splatting Guide — Inspiration Courtyard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<!-- Icons are native emoji for universal mobile support -->
 <style>
   :root {
     --blue: #003057;
@@ -72,6 +72,67 @@
   .lifeline-item:last-child { border-bottom: none; }
   .footer { text-align: center; padding: 32px; color: var(--text-light); font-size: 12px; border-top: 1px solid #e8ecf0; margin-top: 24px; }
   .footer strong { color: var(--blue); }
+  .decision-box { border-radius: 10px; padding: 18px 20px; margin: 14px 0; }
+  .decision-box--green { background: #f0fdf4; border: 2px solid #86efac; }
+  .decision-box--green h4 { color: #16a34a; margin: 0 0 10px; font-size: 14px; }
+  .decision-box--yellow { background: #fffbeb; border: 2px solid #fde68a; }
+  .decision-box--yellow h4 { color: #d97706; margin: 0 0 10px; font-size: 14px; }
+  .message-card { background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%); border: 2px solid #facc15; border-radius: 12px; padding: 28px 32px; margin: 28px 0; text-align: center; }
+  .message-card h3 { font-size: 18px; font-weight: 700; color: #003057; margin-bottom: 12px; }
+  .message-card p { font-size: 14px; color: #1a2332; max-width: 600px; margin: 0 auto 16px; line-height: 1.7; }
+  .message-card .no-sola { font-size: 20px; font-weight: 700; color: #003057; margin: 20px auto 4px; font-style: italic; }
+  /* ─── MOBILE RESPONSIVE ─── */
+  @media (max-width: 600px) {
+    .header { padding: 24px 20px; }
+    .header h1 { font-size: 22px; }
+    .header-sub { font-size: 13px; }
+    .content { padding: 16px 12px 48px; }
+    .intro-card, .done-section, .step-card, .checklist, .lifeline { padding: 18px 16px; border-radius: 10px; }
+    .step-card { padding: 20px 16px; }
+    .step-title { font-size: 15px; }
+    .step-header { gap: 10px; }
+    .step-number { width: 34px; height: 34px; font-size: 14px; border-radius: 8px; }
+    .decision-box { padding: 14px 12px; }
+    .decision-box h4 { font-size: 13px !important; }
+    .message-card { padding: 20px 16px; }
+    .message-card h3 { font-size: 16px; }
+    .message-card p { font-size: 13px; }
+    .message-card .no-sola { font-size: 17px; }
+
+    /* Tables → stacked cards on mobile */
+    table, thead, tbody, th, td, tr { display: block; width: 100%; }
+    thead { display: none; }
+    tr { background: var(--card); border: 1px solid #e8ecf0; border-radius: 8px; margin-bottom: 8px; padding: 12px 14px; }
+    tr:nth-child(even) td { background: transparent; }
+    td { padding: 4px 0; border: none; font-size: 13px; }
+    td:first-child { font-weight: 600; color: var(--blue); padding-bottom: 4px; }
+    td:before { content: none; }
+
+    /* Code blocks scroll horizontally */
+    .code-block { font-size: 11px; padding: 12px 14px; word-break: break-all; }
+
+    /* Tip/warn/help boxes */
+    .tip-box, .warn-box { padding: 12px 14px; font-size: 12.5px; }
+    .help-box { padding: 12px 14px; font-size: 12.5px; }
+
+    /* Checklist */
+    .check-item { font-size: 12.5px; gap: 10px; }
+    .checkbox { width: 18px; height: 18px; }
+
+    /* Lifeline */
+    .lifeline-item { font-size: 12.5px; gap: 8px; }
+
+    /* Personal message */
+    .footer { padding: 20px 16px; }
+  }
+
+  @media (max-width: 380px) {
+    .header h1 { font-size: 19px; }
+    .header-eyebrow { font-size: 10px; letter-spacing: 1.5px; }
+    .step-title { font-size: 14px; }
+    .code-block { font-size: 10.5px; padding: 10px 12px; }
+  }
+
   @media print {
     body { background: white; font-size: 12px; }
     .header { padding: 24px 32px; }
@@ -100,11 +161,11 @@
 </div>
 
 <div class="done-section">
-  <h3><span class="material-icons-round">check_circle</span> What You've Already Completed</h3>
-  <div class="done-item"><span class="material-icons-round">check_circle</span> LiDAR scan with Leica BLK (~760 million points)</div>
-  <div class="done-item"><span class="material-icons-round">check_circle</span> Ground control points (RTK + NGS benchmarks)</div>
-  <div class="done-item"><span class="material-icons-round">check_circle</span> Cleaned in Cyclone REGISTER 360 PLUS</div>
-  <div class="done-item"><span class="material-icons-round">check_circle</span> Exported to E57/RCS → ReCap → Revit</div>
+  <h3>✅ What You've Already Completed</h3>
+  <div class="done-item">✅ LiDAR scan with Leica BLK (~760 million points)</div>
+  <div class="done-item">✅ Ground control points (RTK + NGS benchmarks)</div>
+  <div class="done-item">✅ Cleaned in Cyclone REGISTER 360 PLUS</div>
+  <div class="done-item">✅ Exported to E57/RCS → ReCap → Revit</div>
   <div style="margin-top:12px; font-weight:600; color:#166534;">You're already 60% done. Here are the remaining steps:</div>
 </div>
 
@@ -129,7 +190,7 @@
       <li>Each photo should share ~70% overlap with the previous one</li>
       <li>Avoid direct sun glare · Overcast days work best</li>
     </ul>
-    <div class="tip-box"><span class="material-icons-round">lightbulb</span><span>Save all photos in one folder: <code>courtyard_photos</code></span></div>
+    <div class="tip-box">💡 Save all photos in one folder: <code>courtyard_photos</code></div>
   </div>
 </div>
 
@@ -142,8 +203,8 @@
   <div class="step-body">
     <p>We need to figure out <strong>where the camera was</strong> for each photo. Your existing software may already do this!</p>
 
-    <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:10px; padding:18px 20px; margin:14px 0;">
-      <h4 style="color:#16a34a; margin:0 0 10px; font-size:14px;">✅ TRY FIRST — Software You Already Have</h4>
+    <div class="decision-box decision-box--green">
+      <h4>✅ TRY FIRST — Software You Already Have</h4>
       <table>
         <tr><th>Software</th><th>Can It Do This?</th><th>How</th></tr>
         <tr><td><strong>Pix4D</strong></td><td>✅ Yes — does SfM <em>and</em> Gaussian Splatting!</td><td>Import photos → Process → Look for "3D Gaussian Splat" or "Point Cloud" export. <strong>If Pix4D generates a .ply splat, skip straight to Step 4!</strong></td></tr>
@@ -153,8 +214,8 @@
       </table>
     </div>
 
-    <div style="background:#fffbeb; border:2px solid #fde68a; border-radius:10px; padding:18px 20px; margin:14px 0;">
-      <h4 style="color:#d97706; margin:0 0 10px; font-size:14px;">🔄 FREE FALLBACK — If Your Software Can't Do It</h4>
+    <div class="decision-box decision-box--yellow">
+      <h4>🔄 FREE FALLBACK — If Your Software Can't Do It</h4>
       <p style="margin-bottom:10px;">Install these free tools:</p>
       <table>
         <tr><th>Software</th><th>What It Does</th><th>Get It</th></tr>
@@ -177,13 +238,13 @@
   <div class="step-body">
     <p>Follow <strong>whichever path</strong> matches what worked in Step 2:</p>
 
-    <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:10px; padding:18px 20px; margin:14px 0;">
-      <h4 style="color:#16a34a; margin:0 0 10px; font-size:14px;">✅ PATH A — Pix4D / DJI Terra Did Everything</h4>
+    <div class="decision-box decision-box--green">
+      <h4>✅ PATH A — Pix4D / DJI Terra Did Everything</h4>
       <p>If Pix4D or DJI Terra already generated a <strong>.ply Gaussian Splat file</strong> → you're done with this step! Skip to Step 4 (cleanup).</p>
     </div>
 
-    <div style="background:#fffbeb; border:2px solid #fde68a; border-radius:10px; padding:18px 20px; margin:14px 0;">
-      <h4 style="color:#d97706; margin:0 0 10px; font-size:14px;">🔄 PATH B — Using COLMAP + Nerfstudio</h4>
+    <div class="decision-box decision-box--yellow">
+      <h4>🔄 PATH B — Using COLMAP + Nerfstudio</h4>
 
       <p style="margin:8px 0;"><strong>First, run COLMAP</strong> (has a graphical interface — no command line!):</p>
       <ol style="margin-bottom:12px;">
@@ -209,7 +270,7 @@
 
     <h4>GPU Check (for Path B only)</h4>
     <div class="code-block"><span class="code-comment"># Type this in Command Prompt:</span><br><span class="code-cmd">nvidia-smi</span></div>
-    <div class="warn-box"><span class="material-icons-round">warning</span><span><strong>No GPU or under 12GB?</strong> Tell Chris — he'll set up Google Colab (free cloud GPU).</span></div>
+    <div class="warn-box">⚠️ <strong>No GPU or under 12GB?</strong> Tell Chris — he'll set up Google Colab (free cloud GPU).</div>
 
     <div class="help-box"><strong>🆘 Stuck?</strong> Screenshot any error and send to Chris. Common fixes are easy.</div>
   </div>
@@ -240,13 +301,13 @@
   <div class="step-body">
     <p>Upload the cleaned <code>.ply</code> to <strong>Basecamp or OneDrive</strong> and tell Chris it's ready.</p>
     <p>Chris will upload to Cesium ion → add to AVA → generate QR code → <strong>it goes live!</strong></p>
-    <div class="tip-box"><span class="material-icons-round">celebration</span><span><strong>That's it — you're done!</strong> 🎉</span></div>
+    <div class="tip-box">🎉 <strong>That's it — you're done!</strong></div>
   </div>
 </div>
 
 <!-- CHECKLIST -->
 <div class="checklist">
-  <h3><span class="material-icons-round">checklist</span> <span>Summary Checklist</span></h3>
+  <h3>📋 <span>Summary Checklist</span></h3>
   <div class="check-item"><div class="checkbox"></div> Take 150–200 phone photos of the courtyard (30 min)</div>
   <div class="check-item"><div class="checkbox"></div> Try Pix4D or DJI Terra first — can it generate a .ply splat?</div>
   <div class="check-item"><div class="checkbox"></div> If not → install COLMAP + Nerfstudio (ask Chris)</div>
@@ -261,7 +322,7 @@
 
 <!-- LIFELINE -->
 <div class="lifeline">
-  <h3><span class="material-icons-round">support_agent</span> Your Lifeline Card</h3>
+  <h3>🆘 Your Lifeline Card</h3>
   <div class="lifeline-item"><span>💻</span> <span><strong>Software / code / GPU</strong> → Chris Harrison</span></div>
   <div class="lifeline-item"><span>🗺️</span> <span><strong>Map / GIS / coordinates</strong> → Dr. Hashemi Beni</span></div>
   <div class="lifeline-item"><span>📷</span> <span><strong>Need another drone scan</strong> → Dr. Chakraborty</span></div>
@@ -271,21 +332,13 @@
 </div>
 
 <!-- PERSONAL MESSAGE -->
-<div style="background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%); border: 2px solid #facc15; border-radius: 12px; padding: 28px 32px; margin: 28px 0; text-align: center;">
+<div class="message-card">
   <div style="font-size: 28px; margin-bottom: 12px;">💛</div>
-  <h3 style="font-size: 18px; font-weight: 700; color: #003057; margin-bottom: 12px;">One More Thing, Maria</h3>
-  <p style="font-size: 14px; color: #1a2332; max-width: 600px; margin: 0 auto 16px; line-height: 1.7;">
-    We know the <strong>mesh segmentation challenge</strong> — separating sidewalks from turf, trees from buildings, getting detached components for material takeoffs — is the harder problem. <strong>You are not working on that alone.</strong>
-  </p>
-  <p style="font-size: 14px; color: #1a2332; max-width: 600px; margin: 0 auto 16px; line-height: 1.7;">
-    The team is <strong>actively building a plan</strong> to figure out the best workflow for segmenting the static mesh — whether that's Revit, Rhino, SketchUp, or AI-assisted tools. We'll tackle it together.
-  </p>
-  <p style="font-size: 14px; color: #1a2332; max-width: 600px; margin: 0 auto 16px; line-height: 1.7;">
-    This Gaussian Splatting guide is the <strong>quick win</strong> — the beautiful visualization layer we can deliver now while we solve the engineering puzzle as a team.
-  </p>
-  <p style="font-size: 20px; font-weight: 700; color: #003057; margin: 20px auto 4px; font-style: italic;">
-    No estás sola. 🤝
-  </p>
+  <h3>One More Thing, Maria</h3>
+  <p>We know the <strong>mesh segmentation challenge</strong> — separating sidewalks from turf, trees from buildings, getting detached components for material takeoffs — is the harder problem. <strong>You are not working on that alone.</strong></p>
+  <p>The team is <strong>actively building a plan</strong> to figure out the best workflow for segmenting the static mesh — whether that's Revit, Rhino, SketchUp, or AI-assisted tools. We'll tackle it together.</p>
+  <p>This Gaussian Splatting guide is the <strong>quick win</strong> — the beautiful visualization layer we can deliver now while we solve the engineering puzzle as a team.</p>
+  <p class="no-sola">No estás sola. 🤝</p>
   <p style="font-size: 13px; color: #5a6a7e;">— Chris & the Inspiration Courtyard Team</p>
 </div>
 
